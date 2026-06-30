@@ -2,15 +2,23 @@ import { useState } from 'react';
 import { MapPin, Calendar, ChevronRight, Camera, Heart, Star } from 'lucide-react';
 import GlassCard from '../components/ui/GlassCard';
 import TripCard from '../components/trip/TripCard';
-import { mockTrips } from '../data/mock';
+import { mockTrips, Trip } from '../data/mock';
 import { useNavigate } from 'react-router-dom';
 
 export default function Profile() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'current' | 'history'>('current');
+  const [trips, setTrips] = useState(mockTrips);
 
-  const currentTrips = mockTrips.filter(t => t.status !== 'completed');
-  const historicalTrips = mockTrips.filter(t => t.status === 'completed');
+  const currentTrips = trips.filter(t => t.status !== 'completed');
+  const historicalTrips = trips.filter(t => t.status === 'completed');
+
+  const handleCompleteTrip = (tripId: string) => {
+    setTrips(prev => prev.map(t => 
+      t.id === tripId ? { ...t, status: 'completed' as const } : t
+    ));
+    setActiveTab('history');
+  };
 
   return (
     <div className="min-h-screen pb-24 md:pb-8 pt-20 md:pt-24 px-4 md:px-8">
@@ -30,7 +38,7 @@ export default function Profile() {
               <h2 className="text-xl font-bold text-gray-800">旅行爱好者</h2>
               <p className="text-sm text-gray-500 mt-1">世界那么大，一起去看看</p>
               <div className="flex gap-4 mt-2 text-sm text-gray-500">
-                <span><strong className="text-gray-700">{mockTrips.length}</strong> 行程</span>
+                <span><strong className="text-gray-700">{trips.length}</strong> 行程</span>
                 <span><strong className="text-gray-700">28</strong> 收藏</span>
                 <span><strong className="text-gray-700">156</strong> 足迹</span>
               </div>
@@ -72,6 +80,7 @@ export default function Profile() {
                   key={trip.id}
                   trip={trip}
                   onClick={() => navigate(`/trip/${trip.id}`)}
+                  onComplete={() => handleCompleteTrip(trip.id)}
                 />
               ))
             ) : (

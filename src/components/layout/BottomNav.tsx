@@ -91,21 +91,21 @@ export default function BottomNav() {
               </button>
             ))}
 
-            {/* + Button */}
-            <div className="relative">
+            {/* + Button - protruding upward */}
+            <div className="relative -mt-10">
               <button
                 onClick={handleClick}
                 onTouchStart={handleTouchStart}
                 onTouchMove={handleTouchMove}
                 onTouchEnd={handleTouchEnd}
-                className="w-14 h-14 rounded-full flex items-center justify-center text-white font-bold text-2xl transition-all duration-300"
+                className="w-16 h-16 rounded-full flex items-center justify-center text-white font-bold text-2xl transition-all duration-300"
                 style={{
                   background: isRecording
                     ? 'linear-gradient(135deg, #ec4899, #f43f5e)'
                     : 'linear-gradient(135deg, #6366f1, #8b5cf6)',
                   boxShadow: isRecording
                     ? '0 0 20px rgba(236, 72, 153, 0.6), 0 0 40px rgba(236, 72, 153, 0.4)'
-                    : '0 8px 32px rgba(139, 92, 246, 0.4)',
+                    : '0 10px 40px rgba(139, 92, 246, 0.5)',
                   transform: isRecording ? 'scale(1.15)' : 'scale(1)',
                   animation: isRecording ? 'pulseGlow 1s ease-in-out infinite' : 'none',
                 }}
