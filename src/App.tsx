@@ -9,6 +9,7 @@ import POIDetail from './pages/POIDetail';
 import TripDetail from './pages/TripDetail';
 import Budget from './pages/Budget';
 import Profile from './pages/Profile';
+import GuideDetail from './pages/GuideDetail';
 
 export default function App() {
   return (
@@ -24,6 +25,7 @@ export default function App() {
           <Route path="/trip/:id" element={<TripDetail />} />
           <Route path="/budget/:tripId" element={<Budget />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/guide/:id" element={<GuideDetail />} />
         </Routes>
         <BottomNav />
       </div>

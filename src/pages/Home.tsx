@@ -147,10 +147,10 @@ export default function Home() {
             </div>
           </div>
 
-          {/* User Guides */}
+          {/* Recommended Guides */}
           <div className="mb-10">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold text-gray-800">用户攻略</h2>
+              <h2 className="text-xl font-bold text-gray-800">推荐攻略</h2>
               <button className="flex items-center gap-1 text-primary-mid text-sm hover:underline">
                 <span>更多</span>
                 <ChevronRight size={16} />
@@ -161,6 +161,7 @@ export default function Home() {
                 <GlassCard
                   key={guide.id}
                   className="overflow-hidden cursor-pointer"
+                  onClick={() => navigate(`/guide/${guide.id}`)}
                 >
                   <div className="flex gap-4">
                     <div className="relative w-40 h-40 flex-shrink-0">
@@ -184,19 +185,12 @@ export default function Home() {
                         </div>
                         <span className="text-sm text-gray-500">{guide.author}</span>
                       </div>
-                      <div className="flex items-center gap-2 mt-2">
+                      <div className="flex items-center gap-2 mt-2 flex-wrap">
                         {guide.pois.map((poi, idx) => (
                           <div key={idx} className="flex items-center">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleAddToTrip(poi);
-                              }}
-                              className="px-2 py-1 rounded-full bg-primary-mid/10 text-primary-mid text-xs hover:bg-primary-mid/20 transition-colors flex items-center gap-1"
-                            >
-                              <Bookmark size={10} />
+                            <span className="px-2 py-1 rounded-full bg-primary-mid/10 text-primary-mid text-xs">
                               {poi}
-                            </button>
+                            </span>
                             {idx < guide.pois.length - 1 && (
                               <span className="text-gray-300 mx-1">·</span>
                             )}

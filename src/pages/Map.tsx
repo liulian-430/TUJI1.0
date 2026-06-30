@@ -1,263 +1,192 @@
-import { useEffect, useRef, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
-import { MapPin, Navigation, Layers, Search as SearchIcon, X, Plus } from 'lucide-react';
+import { useState } from 'react';
+import { MapPin, Calendar, ChevronRight, Search, Plus, TrendingUp } from 'lucide-react';
 import GlassCard from '../components/ui/GlassCard';
-import { mockPOIs, POI } from '../data/mock';
-import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
-
-const defaultIcon = L.divIcon({
-  className: 'custom-marker',
-  html: `<div style="background: linear-gradient(135deg, #6366f1, #ec4899); width: 32px; height: 32px; border-radius: 50%; border: 3px solid white; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);"></div>`,
-  iconSize: [32, 32],
-  iconAnchor: [16, 32],
-  popupAnchor: [0, -32],
-});
-
-function MapController({ center }: { center: [number, number] }) {
-  const map = useMap();
-  useEffect(() => {
-    map.flyTo(center, 13);
-  }, [center, map]);
-  return null;
-}
+import { mockTrips, mockDaySchedules, mockPOIs } from '../data/mock';
 
 export default function Map() {
-  const [selectedPOI, setSelectedPOI] = useState<POI | null>(null);
-  const [showList, setShowList] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<POI[]>([]);
-  const [addedPOIs, setAddedPOIs] = useState<POI[]>([]);
+  const [selectedTrip, setSelectedTrip] = useState(mockTrips[0]);
   const [showSearch, setShowSearch] = useState(false);
 
-  const allPois = [...mockPOIs, ...addedPOIs];
+  const schedules = mockDaySchedules.filter((s) => s.tripId === selectedTrip.id);
 
-  useEffect(() => {
-    if (searchQuery.trim()) {
-      const filtered = mockPOIs.filter(
-        (poi) =>
-          poi.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          poi.city.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-      setSearchResults(filtered);
-    } else {
-      setSearchResults([]);
-    }
-  }, [searchQuery]);
+  const typeColors = {
+    scenic: 'bg-green-500/20 text-green-600 border-green-500/30',
+    food: 'bg-red-500/20 text-red-600 border-red-500/30',
+    hotel: 'bg-blue-500/20 text-blue-600 border-blue-500/30',
+    transport: 'bg-gray-500/20 text-gray-600 border-gray-500/30',
+    shopping: 'bg-purple-500/20 text-purple-600 border-purple-500/30',
+  };
 
-  const handleAddToMap = (poi: POI) => {
-    if (!addedPOIs.find((p) => p.id === poi.id)) {
-      setAddedPOIs([...addedPOIs, poi]);
-    }
-    setSelectedPOI(poi);
-    setShowSearch(false);
-    setSearchQuery('');
+  const typeLabels = {
+    scenic: '景点',
+    food: '美食',
+    hotel: '住宿',
+    transport: '交通',
+    shopping: '购物',
   };
 
   return (
-    <div className="min-h-screen pb-24 md:pb-0 pt-20 md:pt-0 relative">
-      <MapContainer
-        center={[39.9042, 116.4074]}
-        zoom={12}
-        className="h-[calc(100vh-5rem)] md:h-screen w-full"
-        zoomControl={false}
-      >
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
-        {allPois.map((poi) => (
-          <Marker
-            key={poi.id}
-            position={[poi.latitude, poi.longitude]}
-            icon={defaultIcon}
-            eventHandlers={{
-              click: () => setSelectedPOI(poi),
-            }}
-          >
-            <Popup>
-              <div className="p-2 min-w-[200px]">
-                <img
-                  src={poi.images[0]}
-                  alt={poi.name}
-                  className="w-full h-24 object-cover rounded-lg mb-2"
-                />
-                <h3 className="font-medium text-gray-800">{poi.name}</h3>
-                <div className="flex items-center gap-1 text-sm text-gray-500 mt-1">
-                  <span>评分 {poi.rating}</span>
-                  <span>|</span>
-                  <span>¥{poi.price}</span>
-                </div>
-              </div>
-            </Popup>
-          </Marker>
-        ))}
-        {selectedPOI && (
-          <MapController center={[selectedPOI.latitude, selectedPOI.longitude]} />
-        )}
-      </MapContainer>
-
-      {/* Floating Search Button */}
-      <button
-        onClick={() => setShowSearch(!showSearch)}
-        className="absolute top-24 left-4 glass-card p-3 hover:bg-white/20 transition-colors z-[1000]"
-      >
-        <SearchIcon size={20} className="text-gray-700" />
-      </button>
-
-      {/* Search Panel */}
-      {showSearch && (
-        <div className="absolute top-24 left-4 right-4 md:left-auto md:right-4 md:w-96 glass-card p-4 z-[1001]">
-          <div className="flex items-center gap-2 mb-4">
-            <div className="flex-1 relative">
-              <SearchIcon size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="搜索景点..."
-                className="w-full bg-white/10 rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-mid/50"
-              />
+    <div className="min-h-screen pb-24 md:pb-8 pt-20 md:pt-24">
+      {/* Map Placeholder */}
+      <div className="relative h-[40vh] md:h-[50vh] bg-gradient-to-br from-slate-100 to-indigo-50/50">
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-16 h-16 rounded-full bg-primary-mid/10 flex items-center justify-center mx-auto mb-4">
+              <MapPin size={32} className="text-primary-mid" />
             </div>
-            <button
-              onClick={() => setShowSearch(false)}
-              className="p-2 hover:bg-white/10 rounded-lg"
-            >
-              <X size={18} className="text-gray-500" />
-            </button>
+            <p className="text-gray-500 font-medium">地图加载中...</p>
+            <p className="text-sm text-gray-400 mt-1">地图功能即将上线</p>
           </div>
-
-          {/* Search Results */}
-          {searchResults.length > 0 ? (
-            <div className="space-y-2 max-h-64 overflow-y-auto">
-              {searchResults.map((poi) => (
-                <button
-                  key={poi.id}
-                  onClick={() => handleAddToMap(poi)}
-                  className="w-full p-3 rounded-lg hover:bg-white/10 transition-colors flex items-center gap-3 text-left"
-                >
-                  <img
-                    src={poi.images[0]}
-                    alt={poi.name}
-                    className="w-12 h-12 rounded-lg object-cover"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-gray-800 truncate">{poi.name}</p>
-                    <p className="text-xs text-gray-500">{poi.city}</p>
-                  </div>
-                  <Plus size={18} className="text-primary-mid" />
-                </button>
-              ))}
-            </div>
-          ) : searchQuery ? (
-            <p className="text-sm text-gray-500 text-center py-4">未找到结果</p>
-          ) : (
-            <div className="space-y-2">
-              <p className="text-xs text-gray-500 mb-2">推荐景点</p>
-              {mockPOIs.slice(0, 4).map((poi) => (
-                <button
-                  key={poi.id}
-                  onClick={() => handleAddToMap(poi)}
-                  className="w-full p-3 rounded-lg hover:bg-white/10 transition-colors flex items-center gap-3 text-left"
-                >
-                  <img
-                    src={poi.images[0]}
-                    alt={poi.name}
-                    className="w-12 h-12 rounded-lg object-cover"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-gray-800 truncate">{poi.name}</p>
-                    <p className="text-xs text-gray-500">{poi.city}</p>
-                  </div>
-                  <Plus size={18} className="text-primary-mid" />
-                </button>
-              ))}
-            </div>
-          )}
         </div>
-      )}
 
-      {/* Floating Controls */}
-      <div className="absolute top-24 right-4 flex flex-col gap-2 z-[1000]">
-        <button className="glass-card p-3 hover:bg-white/20 transition-colors">
-          <Layers size={20} className="text-gray-700" />
-        </button>
-        <button className="glass-card p-3 hover:bg-white/20 transition-colors">
-          <Navigation size={20} className="text-gray-700" />
-        </button>
+        {/* Map Controls */}
+        <div className="absolute top-4 left-4 flex flex-col gap-2">
+          <button
+            onClick={() => setShowSearch(!showSearch)}
+            className="glass-card p-3 hover:bg-white/30 transition-colors"
+          >
+            <Search size={20} className="text-gray-700" />
+          </button>
+        </div>
+
+        {/* Search Panel */}
+        {showSearch && (
+          <div className="absolute top-4 left-4 right-4 md:left-auto md:right-4 md:w-96 glass-card p-4 z-[1001]">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="flex-1 relative">
+                <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="搜索景点..."
+                  className="w-full bg-white/10 rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-mid/50"
+                />
+              </div>
+            </div>
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {mockPOIs.slice(0, 5).map((poi) => (
+                <button
+                  key={poi.id}
+                  className="w-full p-3 rounded-lg hover:bg-white/10 transition-colors flex items-center gap-3 text-left"
+                >
+                  <img
+                    src={poi.images[0]}
+                    alt={poi.name}
+                    className="w-12 h-12 rounded-lg object-cover"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-gray-800 truncate">{poi.name}</p>
+                    <p className="text-xs text-gray-500">{poi.city}</p>
+                  </div>
+                  <Plus size={18} className="text-primary-mid" />
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Current Location Marker */}
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2">
+          <div className="relative w-12 h-12">
+            <div className="absolute inset-0 bg-primary-mid/30 rounded-full animate-ping" />
+            <div className="absolute inset-2 bg-primary-mid/50 rounded-full animate-ping" style={{ animationDelay: '0.2s' }} />
+            <div className="absolute inset-0 bg-gradient-primary rounded-full flex items-center justify-center shadow-lg">
+              <div className="w-3 h-3 bg-white rounded-full" />
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Bottom POI Card */}
-      {selectedPOI && (
-        <div className="absolute bottom-24 md:bottom-8 left-4 right-4 md:left-auto md:right-8 md:w-96 z-[1000]">
-          <GlassCard className="p-4 cursor-pointer" onClick={() => setShowList(!showList)}>
-            <div className="flex items-start gap-4">
-              <img
-                src={selectedPOI.images[0]}
-                alt={selectedPOI.name}
-                className="w-24 h-24 rounded-xl object-cover"
-              />
-              <div className="flex-1 min-w-0">
-                <h3 className="font-bold text-gray-800 truncate">{selectedPOI.name}</h3>
-                <div className="flex items-center gap-1 text-sm text-gray-500 mt-1">
-                  <MapPin size={12} />
-                  <span className="truncate">{selectedPOI.address}</span>
-                </div>
-                <div className="flex items-center gap-2 mt-2">
-                  <span className="text-yellow-500 text-sm">
-                    {'★'.repeat(Math.floor(selectedPOI.rating))}
-                  </span>
-                  <span className="text-sm font-medium">{selectedPOI.rating}</span>
-                </div>
-                {selectedPOI.price > 0 && (
-                  <span className="text-primary-mid font-bold mt-1 block">
-                    ¥{selectedPOI.price}
-                  </span>
-                )}
+      {/* Trip List */}
+      <div className="px-4 md:px-8 py-6">
+        <div className="max-w-4xl mx-auto">
+          {/* Trip Selector */}
+          <div className="flex gap-3 mb-6 overflow-x-auto pb-2 scrollbar-hide">
+            {mockTrips.map((trip) => (
+              <button
+                key={trip.id}
+                onClick={() => setSelectedTrip(trip)}
+                className={`flex-shrink-0 px-4 py-2 rounded-xl font-medium transition-all ${
+                  selectedTrip.id === trip.id
+                    ? 'bg-gradient-primary text-white shadow-lg'
+                    : 'glass-card text-gray-600 hover:bg-white/20'
+                }`}
+              >
+                {trip.name}
+              </button>
+            ))}
+          </div>
+
+          {/* Trip Overview */}
+          <GlassCard className="p-4 mb-6">
+            <div className="flex items-center gap-4 text-sm text-gray-600">
+              <div className="flex items-center gap-1">
+                <MapPin size={14} className="text-primary-mid" />
+                <span>{selectedTrip.destination}</span>
               </div>
+              <span className="text-gray-300">|</span>
+              <span>{selectedTrip.days}天{selectedTrip.nights}夜</span>
+              <span className="text-gray-300">|</span>
+              <span>{selectedTrip.people}人</span>
+              <span className="text-gray-300">|</span>
+              <span>{selectedTrip.startDate}</span>
             </div>
           </GlassCard>
-        </div>
-      )}
 
-      {/* POI List Overlay */}
-      {showList && (
-        <div className="absolute top-20 left-0 bottom-24 md:bottom-8 w-full md:w-96 bg-white/95 backdrop-blur-xl z-[999] overflow-y-auto">
-          <div className="p-4">
-            <h2 className="font-bold text-gray-800 mb-4">地图上的景点</h2>
-            <div className="space-y-3">
-              {allPois.map((poi) => (
-                <GlassCard
-                  key={poi.id}
-                  className={`p-3 ${selectedPOI?.id === poi.id ? 'ring-2 ring-primary-mid' : ''}`}
-                  onClick={() => {
-                    setSelectedPOI(poi);
-                    setShowList(false);
-                  }}
-                >
-                  <div className="flex items-center gap-3">
-                    <img
-                      src={poi.images[0]}
-                      alt={poi.name}
-                      className="w-16 h-16 rounded-lg object-cover"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-medium text-gray-800 truncate">{poi.name}</h4>
-                      <p className="text-xs text-gray-500 truncate">{poi.city}</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="text-sm text-yellow-500">★ {poi.rating}</span>
-                        {poi.price > 0 && (
-                          <span className="text-sm text-primary-mid">¥{poi.price}</span>
-                        )}
+          {/* Day Schedules */}
+          <div className="relative">
+            <div className="timeline-line" />
+            {schedules.map((day, dayIndex) => (
+              <div key={day.id} className="relative pl-12 mb-8">
+                <div className="timeline-dot" />
+                <GlassCard className="p-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-bold text-gray-800">
+                      Day {day.dayIndex}
+                    </h3>
+                    <span className="text-sm text-gray-500">{day.date}</span>
+                  </div>
+
+                  <div className="space-y-4">
+                    {day.items.map((item) => (
+                      <div
+                        key={item.id}
+                        className="relative bg-white/5 rounded-xl p-4 border border-white/10"
+                      >
+                        <div className="flex items-start gap-3">
+                          <img
+                            src={item.poi.images[0]}
+                            alt={item.poi.name}
+                            className="w-16 h-16 rounded-lg object-cover"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className={`text-xs px-2 py-0.5 rounded border ${typeColors[item.type]}`}>
+                                {typeLabels[item.type]}
+                              </span>
+                              <span className="text-xs text-gray-500">
+                                {item.startTime} - {item.endTime}
+                              </span>
+                            </div>
+                            <h4 className="font-medium text-gray-800 truncate">
+                              {item.poi.name}
+                            </h4>
+                            <p className="text-xs text-gray-500 mt-1 truncate">
+                              {item.poi.address}
+                            </p>
+                          </div>
+                        </div>
                       </div>
-                    </div>
+                    ))}
                   </div>
                 </GlassCard>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }

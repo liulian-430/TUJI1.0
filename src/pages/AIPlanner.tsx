@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Sparkles, Mic, Send, ChevronUp, ChevronDown, Trash2, Plus, MapPin, Calendar, Users, DollarSign, Utensils, Building, X } from 'lucide-react';
+import { Sparkles, Mic, ChevronUp, ChevronDown, Trash2, Plus, MapPin, Calendar, Users, DollarSign, Utensils, Building, X } from 'lucide-react';
 import GlassCard from '../components/ui/GlassCard';
 import { mockPOIs, DaySchedule } from '../data/mock';
 
@@ -20,9 +20,9 @@ export default function AIPlanner() {
 
   // 个性化规划状态
   const [destination, setDestination] = useState('');
-  const [selectedPois, setSelectedPois] = useState<string[]>([]);
-  const [selectedFoods, setSelectedFoods] = useState<string[]>([]);
-  const [selectedHotels, setSelectedHotels] = useState<string[]>([]);
+  const [poisText, setPoisText] = useState('');
+  const [foodsText, setFoodsText] = useState('');
+  const [hotelsText, setHotelsText] = useState('');
   const [days, setDays] = useState(3);
   const [nights, setNights] = useState(2);
   const [people, setPeople] = useState(2);
@@ -83,17 +83,17 @@ export default function AIPlanner() {
 
   const handleCustomGenerate = () => {
     const selectedItems = [
-      ...allPois.filter(p => selectedPois.includes(p.id)),
-      ...allFoods.filter(p => selectedFoods.includes(p.id)),
-      ...allHotels.filter(p => selectedHotels.includes(p.id)),
-    ];
+      ...mockPOIs.filter(p => p.type === 'scenic'),
+      ...mockPOIs.filter(p => p.type === 'food'),
+      ...mockPOIs.filter(p => p.type === 'hotel'),
+    ].slice(0, 6);
 
     const mockSchedule: DaySchedule[] = Array.from({ length: days }, (_, dayIdx) => ({
       id: `${dayIdx + 1}`,
       tripId: 'new',
       dayIndex: dayIdx + 1,
       date: startDate || `2026-07-${15 + dayIdx}`,
-      items: selectedItems.slice(0, 3).map((poi, idx) => ({
+      items: selectedItems.slice(dayIdx * 2, (dayIdx + 1) * 2).map((poi, idx) => ({
         id: `${dayIdx + 1}-${idx}`,
         poiId: poi.id,
         poi,
@@ -224,21 +224,13 @@ export default function AIPlanner() {
                     <Building size={16} className="inline mr-1 text-primary-mid" />
                     想去的景点
                   </label>
-                  <div className="flex flex-wrap gap-2">
-                    {allPois.map((poi) => (
-                      <button
-                        key={poi.id}
-                        onClick={() => toggleItem(poi.id, selectedPois, setSelectedPois)}
-                        className={`tag text-sm ${
-                          selectedPois.includes(poi.id)
-                            ? 'bg-primary-mid/30 border-primary-mid text-primary-mid'
-                            : ''
-                        }`}
-                      >
-                        {poi.name}
-                      </button>
-                    ))}
-                  </div>
+                  <textarea
+                    value={poisText}
+                    onChange={(e) => setPoisText(e.target.value)}
+                    placeholder="例如：故宫、长城、天坛"
+                    rows={3}
+                    className="glass-input w-full resize-none"
+                  />
                 </div>
 
                 {/* 想吃的美食 */}
@@ -247,21 +239,13 @@ export default function AIPlanner() {
                     <Utensils size={16} className="inline mr-1 text-primary-mid" />
                     想吃的美食
                   </label>
-                  <div className="flex flex-wrap gap-2">
-                    {allFoods.map((poi) => (
-                      <button
-                        key={poi.id}
-                        onClick={() => toggleItem(poi.id, selectedFoods, setSelectedFoods)}
-                        className={`tag text-sm ${
-                          selectedFoods.includes(poi.id)
-                            ? 'bg-primary-mid/30 border-primary-mid text-primary-mid'
-                            : ''
-                        }`}
-                      >
-                        {poi.name}
-                      </button>
-                    ))}
-                  </div>
+                  <textarea
+                    value={foodsText}
+                    onChange={(e) => setFoodsText(e.target.value)}
+                    placeholder="例如：北京烤鸭、炸酱面、涮羊肉"
+                    rows={3}
+                    className="glass-input w-full resize-none"
+                  />
                 </div>
 
                 {/* 想住的酒店 */}
@@ -270,21 +254,13 @@ export default function AIPlanner() {
                     <Building size={16} className="inline mr-1 text-primary-mid" />
                     想住的酒店
                   </label>
-                  <div className="flex flex-wrap gap-2">
-                    {allHotels.map((poi) => (
-                      <button
-                        key={poi.id}
-                        onClick={() => toggleItem(poi.id, selectedHotels, setSelectedHotels)}
-                        className={`tag text-sm ${
-                          selectedHotels.includes(poi.id)
-                            ? 'bg-primary-mid/30 border-primary-mid text-primary-mid'
-                            : ''
-                        }`}
-                      >
-                        {poi.name}
-                      </button>
-                    ))}
-                  </div>
+                  <textarea
+                    value={hotelsText}
+                    onChange={(e) => setHotelsText(e.target.value)}
+                    placeholder="例如：王府井附近、靠近地铁站、四星级"
+                    rows={3}
+                    className="glass-input w-full resize-none"
+                  />
                 </div>
 
                 {/* 天数和夜数 */}

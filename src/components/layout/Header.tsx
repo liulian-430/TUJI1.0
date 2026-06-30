@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from 'react';
 import { Bell } from 'lucide-react';
+import Logo from '../ui/Logo';
 
 export default function Header() {
   const [isRecording, setIsRecording] = useState(false);
@@ -37,10 +38,8 @@ export default function Header() {
         <div className="bg-white/70 backdrop-blur-xl rounded-3xl shadow-xl border border-white/50 px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-primary flex items-center justify-center">
-                <span className="text-white font-bold text-lg">途</span>
-              </div>
-              <span className="text-xl font-bold gradient-text">途迹</span>
+              <Logo />
+              <span className="text-xl font-bold text-gray-800">途迹</span>
             </div>
             <nav className="flex items-center gap-8">
               <a href="/" className="text-gray-600 hover:text-primary-mid transition-colors font-medium">首页</a>
