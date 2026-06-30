@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { MapPin, Users, Calendar, DollarSign, Share2, Edit2, Trash2, ChevronLeft } from 'lucide-react';
+import { MapPin, Users, Calendar, Share2, Edit2, Trash2, ChevronLeft } from 'lucide-react';
 import GlassCard from '../components/ui/GlassCard';
 import { mockTrips, mockDaySchedules, mockBudgets } from '../data/mock';
 
@@ -71,7 +71,7 @@ export default function TripDetail() {
             onClick={() => navigate(`/budget/${trip.id}`)}
             className="glass-card flex-1 p-4 flex items-center justify-center gap-2 hover:bg-white/20 transition-colors"
           >
-            <DollarSign size={20} className="text-primary-mid" />
+            <span className="text-xl font-bold text-primary-mid">¥</span>
             <span className="text-gray-700 font-medium">预算管理</span>
           </button>
           <button className="glass-card p-4 hover:bg-white/20 transition-colors">

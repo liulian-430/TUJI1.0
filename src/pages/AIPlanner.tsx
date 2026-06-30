@@ -1,14 +1,22 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Sparkles, Mic, Send, ChevronUp, ChevronDown, Trash2, Plus, MapPin, Calendar, Users, DollarSign, Utensils, Building, X } from 'lucide-react';
 import GlassCard from '../components/ui/GlassCard';
 import { mockPOIs, DaySchedule } from '../data/mock';
 
 export default function AIPlanner() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState<'ai' | 'custom'>('ai');
   const [aiInput, setAiInput] = useState('');
   const [isListening, setIsListening] = useState(false);
+
+  useEffect(() => {
+    const voice = searchParams.get('voice');
+    if (voice === 'true') {
+      setAiInput('我想去北京玩3天，想去故宫和长城，想吃北京烤鸭，住靠近市中心的酒店，预算3000元');
+    }
+  }, [searchParams]);
 
   // 个性化规划状态
   const [destination, setDestination] = useState('');
