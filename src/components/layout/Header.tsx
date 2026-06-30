@@ -12,9 +12,10 @@ export default function Header() {
         </div>
         <nav className="flex items-center gap-8">
           <a href="/" className="text-gray-600 hover:text-primary-mid transition-colors">首页</a>
-          <a href="/ai-planner" className="text-gray-600 hover:text-primary-mid transition-colors">AI规划</a>
+          <a href="/ai-planner" className="text-gray-600 hover:text-primary-mid transition-colors">AI</a>
+          <a href="/new-trip" className="text-gray-600 hover:text-primary-mid transition-colors font-bold text-lg">＋</a>
           <a href="/map" className="text-gray-600 hover:text-primary-mid transition-colors">地图</a>
-          <a href="/search" className="text-gray-600 hover:text-primary-mid transition-colors">搜索</a>
+          <a href="/profile" className="text-gray-600 hover:text-primary-mid transition-colors">我的</a>
         </nav>
         <div className="flex items-center gap-4">
           <button className="p-2 rounded-xl hover:bg-white/10 transition-colors">

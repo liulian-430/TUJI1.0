@@ -1,23 +1,16 @@
 import { useState } from 'react';
-import { Camera, ChevronRight, Moon, Bell, Shield, HelpCircle, LogOut, MapPin, Star, Heart } from 'lucide-react';
+import { MapPin, Calendar, ChevronRight, Camera, Heart, Star } from 'lucide-react';
 import GlassCard from '../components/ui/GlassCard';
+import TripCard from '../components/trip/TripCard';
+import { mockTrips } from '../data/mock';
+import { useNavigate } from 'react-router-dom';
 
 export default function Profile() {
-  const [isDarkMode, setIsDarkMode] = useState(false);
-  const [notifications, setNotifications] = useState(true);
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<'current' | 'history'>('current');
 
-  const menuItems = [
-    { icon: MapPin, label: '我的足迹', value: '12个目的地', color: 'text-blue-500' },
-    { icon: Heart, label: '我的收藏', value: '28个收藏', color: 'text-favorite' },
-    { icon: Star, label: '我的评价', value: '15条评价', color: 'text-yellow-500' },
-  ];
-
-  const settings = [
-    { icon: Moon, label: '深色模式', toggle: true, value: isDarkMode, onChange: () => setIsDarkMode(!isDarkMode) },
-    { icon: Bell, label: '消息通知', toggle: true, value: notifications, onChange: () => setNotifications(!notifications) },
-    { icon: Shield, label: '隐私设置', link: true },
-    { icon: HelpCircle, label: '帮助与反馈', link: true },
-  ];
+  const currentTrips = mockTrips.filter(t => t.status !== 'completed');
+  const historicalTrips = mockTrips.filter(t => t.status === 'completed');
 
   return (
     <div className="min-h-screen pb-24 md:pb-8 pt-20 md:pt-24 px-4 md:px-8">
@@ -37,7 +30,7 @@ export default function Profile() {
               <h2 className="text-xl font-bold text-gray-800">旅行爱好者</h2>
               <p className="text-sm text-gray-500 mt-1">世界那么大，一起去看看</p>
               <div className="flex gap-4 mt-2 text-sm text-gray-500">
-                <span><strong className="text-gray-700">12</strong> 行程</span>
+                <span><strong className="text-gray-700">{mockTrips.length}</strong> 行程</span>
                 <span><strong className="text-gray-700">28</strong> 收藏</span>
                 <span><strong className="text-gray-700">156</strong> 足迹</span>
               </div>
@@ -46,62 +39,92 @@ export default function Profile() {
           </div>
         </GlassCard>
 
-        {/* Quick Stats */}
-        <div className="grid grid-cols-3 gap-4 mb-6">
-          {menuItems.map((item) => (
-            <GlassCard
-              key={item.label}
-              className="p-4 text-center cursor-pointer hover:bg-white/20 transition-colors"
-            >
-              <item.icon size={24} className={`mx-auto mb-2 ${item.color}`} />
-              <p className="text-xs text-gray-500">{item.label}</p>
-              <p className="text-sm font-medium text-gray-700 mt-1">{item.value}</p>
-            </GlassCard>
-          ))}
+        {/* Trip Tabs */}
+        <div className="flex gap-2 mb-6">
+          <button
+            onClick={() => setActiveTab('current')}
+            className={`flex-1 py-3 rounded-xl font-medium transition-all ${
+              activeTab === 'current'
+                ? 'bg-gradient-primary text-white shadow-lg'
+                : 'glass-card text-gray-600 hover:bg-white/20'
+            }`}
+          >
+            本次行程
+          </button>
+          <button
+            onClick={() => setActiveTab('history')}
+            className={`flex-1 py-3 rounded-xl font-medium transition-all ${
+              activeTab === 'history'
+                ? 'bg-gradient-primary text-white shadow-lg'
+                : 'glass-card text-gray-600 hover:bg-white/20'
+            }`}
+          >
+            历史行程
+          </button>
         </div>
 
-        {/* Settings */}
-        <div className="mb-6">
-          <h3 className="font-bold text-gray-800 mb-4">设置</h3>
-          <GlassCard className="divide-y divide-white/10">
-            {settings.map((item, idx) => (
-              <div
-                key={idx}
-                className="p-4 flex items-center justify-between cursor-pointer hover:bg-white/5 transition-colors"
-                onClick={item.toggle ? item.onChange : undefined}
-              >
-                <div className="flex items-center gap-3">
-                  <item.icon size={20} className="text-gray-500" />
-                  <span className="text-gray-700">{item.label}</span>
-                </div>
-                {item.toggle ? (
-                  <div
-                    className={`w-12 h-6 rounded-full p-1 transition-colors ${
-                      item.value ? 'bg-gradient-primary' : 'bg-gray-300'
-                    }`}
-                  >
-                    <div
-                      className={`w-4 h-4 rounded-full bg-white shadow transition-transform ${
-                        item.value ? 'translate-x-6' : 'translate-x-0'
-                      }`}
-                    />
-                  </div>
-                ) : (
-                  <ChevronRight size={18} className="text-gray-400" />
-                )}
-              </div>
-            ))}
+        {/* Trip List */}
+        {activeTab === 'current' ? (
+          <div className="space-y-4">
+            {currentTrips.length > 0 ? (
+              currentTrips.map((trip) => (
+                <TripCard
+                  key={trip.id}
+                  trip={trip}
+                  onClick={() => navigate(`/trip/${trip.id}`)}
+                />
+              ))
+            ) : (
+              <GlassCard className="p-8 text-center">
+                <p className="text-gray-500 mb-4">暂无进行中的行程</p>
+                <button
+                  onClick={() => navigate('/ai-planner')}
+                  className="gradient-button px-6 py-2"
+                >
+                  创建新行程
+                </button>
+              </GlassCard>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {historicalTrips.length > 0 ? (
+              historicalTrips.map((trip) => (
+                <TripCard
+                  key={trip.id}
+                  trip={trip}
+                  onClick={() => navigate(`/trip/${trip.id}`)}
+                />
+              ))
+            ) : (
+              <GlassCard className="p-8 text-center">
+                <p className="text-gray-500">暂无历史行程</p>
+              </GlassCard>
+            )}
+          </div>
+        )}
+
+        {/* Quick Stats */}
+        <div className="grid grid-cols-3 gap-4 mt-8">
+          <GlassCard className="p-4 text-center cursor-pointer hover:bg-white/20 transition-colors">
+            <MapPin size={24} className="mx-auto mb-2 text-blue-500" />
+            <p className="text-xs text-gray-500">足迹</p>
+            <p className="text-sm font-medium text-gray-700 mt-1">12个目的地</p>
+          </GlassCard>
+          <GlassCard className="p-4 text-center cursor-pointer hover:bg-white/20 transition-colors">
+            <Heart size={24} className="mx-auto mb-2 text-favorite" />
+            <p className="text-xs text-gray-500">收藏</p>
+            <p className="text-sm font-medium text-gray-700 mt-1">28个收藏</p>
+          </GlassCard>
+          <GlassCard className="p-4 text-center cursor-pointer hover:bg-white/20 transition-colors">
+            <Star size={24} className="mx-auto mb-2 text-yellow-500" />
+            <p className="text-xs text-gray-500">评价</p>
+            <p className="text-sm font-medium text-gray-700 mt-1">15条评价</p>
           </GlassCard>
         </div>
 
-        {/* Logout */}
-        <button className="w-full glass-card p-4 text-center text-red-500 hover:bg-red-50/50 transition-colors flex items-center justify-center gap-2">
-          <LogOut size={20} />
-          <span>退出登录</span>
-        </button>
-
         {/* Version */}
-        <p className="text-center text-xs text-gray-400 mt-6">
+        <p className="text-center text-xs text-gray-400 mt-8">
           途迹 v1.0.0
         </p>
       </div>

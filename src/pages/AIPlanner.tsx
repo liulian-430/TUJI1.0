@@ -1,36 +1,51 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MapPin, Calendar, Users, Sparkles, ChevronUp, ChevronDown, Trash2, Plus } from 'lucide-react';
+import { Sparkles, Mic, Send, ChevronUp, ChevronDown, Trash2, Plus, MapPin, Calendar, Users, DollarSign, Utensils, Building, X } from 'lucide-react';
 import GlassCard from '../components/ui/GlassCard';
-import { travelPreferences, mockPOIs, DaySchedule } from '../data/mock';
+import { mockPOIs, DaySchedule } from '../data/mock';
 
 export default function AIPlanner() {
   const navigate = useNavigate();
-  const [step, setStep] = useState(1);
+  const [activeTab, setActiveTab] = useState<'ai' | 'custom'>('ai');
+  const [aiInput, setAiInput] = useState('');
+  const [isListening, setIsListening] = useState(false);
+
+  // 个性化规划状态
   const [destination, setDestination] = useState('');
+  const [selectedPois, setSelectedPois] = useState<string[]>([]);
+  const [selectedFoods, setSelectedFoods] = useState<string[]>([]);
+  const [selectedHotels, setSelectedHotels] = useState<string[]>([]);
   const [days, setDays] = useState(3);
   const [nights, setNights] = useState(2);
   const [people, setPeople] = useState(2);
-  const [startDate, setStartDate] = useState('');
-  const [selectedPrefs, setSelectedPrefs] = useState<string[]>([]);
   const [budget, setBudget] = useState(3000);
+  const [startDate, setStartDate] = useState('');
+
   const [isGenerated, setIsGenerated] = useState(false);
   const [schedules, setSchedules] = useState<DaySchedule[]>([]);
 
-  const togglePref = (id: string) => {
-    setSelectedPrefs(prev =>
-      prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]
-    );
+  const allPois = mockPOIs.filter(p => p.type === 'scenic');
+  const allFoods = mockPOIs.filter(p => p.type === 'food');
+  const allHotels = mockPOIs.filter(p => p.type === 'hotel');
+
+  const toggleItem = (id: string, list: string[], setList: (v: string[]) => void) => {
+    if (list.includes(id)) {
+      setList(list.filter(i => i !== id));
+    } else {
+      setList([...list, id]);
+    }
   };
 
-  const handleGenerate = () => {
+  const handleAIGenerate = () => {
+    if (!aiInput.trim()) return;
+
     const mockSchedule: DaySchedule[] = [
       {
         id: '1',
         tripId: 'new',
         dayIndex: 1,
         date: startDate || '2026-07-15',
-        items: mockPOIs.slice(0, 3).map((poi, idx) => ({
+        items: mockPOIs.slice(0, 2).map((poi, idx) => ({
           id: `1-${idx}`,
           poiId: poi.id,
           poi,
@@ -44,7 +59,7 @@ export default function AIPlanner() {
         tripId: 'new',
         dayIndex: 2,
         date: startDate || '2026-07-16',
-        items: mockPOIs.slice(3, 5).map((poi, idx) => ({
+        items: mockPOIs.slice(2, 4).map((poi, idx) => ({
           id: `2-${idx}`,
           poiId: poi.id,
           poi,
@@ -54,6 +69,32 @@ export default function AIPlanner() {
         })),
       },
     ];
+    setSchedules(mockSchedule);
+    setIsGenerated(true);
+  };
+
+  const handleCustomGenerate = () => {
+    const selectedItems = [
+      ...allPois.filter(p => selectedPois.includes(p.id)),
+      ...allFoods.filter(p => selectedFoods.includes(p.id)),
+      ...allHotels.filter(p => selectedHotels.includes(p.id)),
+    ];
+
+    const mockSchedule: DaySchedule[] = Array.from({ length: days }, (_, dayIdx) => ({
+      id: `${dayIdx + 1}`,
+      tripId: 'new',
+      dayIndex: dayIdx + 1,
+      date: startDate || `2026-07-${15 + dayIdx}`,
+      items: selectedItems.slice(0, 3).map((poi, idx) => ({
+        id: `${dayIdx + 1}-${idx}`,
+        poiId: poi.id,
+        poi,
+        startTime: `${9 + idx * 3}:00`,
+        endTime: `${11 + idx * 3}:00`,
+        type: poi.type as 'scenic' | 'food' | 'hotel' | 'transport',
+      })),
+    }));
+
     setSchedules(mockSchedule);
     setIsGenerated(true);
   };
@@ -86,181 +127,255 @@ export default function AIPlanner() {
   return (
     <div className="min-h-screen pb-24 md:pb-8 pt-20 md:pt-24 px-4 md:px-8">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-2xl md:text-3xl font-bold mb-8 text-center">
+        <h1 className="text-2xl md:text-3xl font-bold mb-6 text-center">
           <span className="gradient-text">AI 智能规划</span>
         </h1>
 
+        {/* Tab Switcher */}
+        <div className="flex gap-2 mb-6">
+          <button
+            onClick={() => setActiveTab('ai')}
+            className={`flex-1 py-3 rounded-xl font-medium transition-all ${
+              activeTab === 'ai'
+                ? 'bg-gradient-primary text-white shadow-lg'
+                : 'glass-card text-gray-600 hover:bg-white/20'
+            }`}
+          >
+            AI 规划
+          </button>
+          <button
+            onClick={() => setActiveTab('custom')}
+            className={`flex-1 py-3 rounded-xl font-medium transition-all ${
+              activeTab === 'custom'
+                ? 'bg-gradient-primary text-white shadow-lg'
+                : 'glass-card text-gray-600 hover:bg-white/20'
+            }`}
+          >
+            个性化规划
+          </button>
+        </div>
+
         {!isGenerated ? (
-          <>
-            {/* Step 1: Basic Info */}
-            <div className={`mb-8 ${step === 1 ? 'block' : 'hidden md:block'}`}>
-              <GlassCard className="p-6">
-                <h2 className="text-lg font-bold text-gray-800 mb-6">行程基本信息</h2>
-                <div className="space-y-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-600 mb-2">
-                      <MapPin size={16} className="inline mr-1 text-primary-mid" />
-                      目的地城市
-                    </label>
-                    <input
-                      type="text"
-                      value={destination}
-                      onChange={(e) => setDestination(e.target.value)}
-                      placeholder="例如：北京、上海、成都"
-                      className="glass-input w-full"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-600 mb-2">
-                        <Calendar size={16} className="inline mr-1 text-primary-mid" />
-                        行程天数
-                      </label>
-                      <input
-                        type="number"
-                        value={days}
-                        onChange={(e) => {
-                          setDays(Number(e.target.value));
-                          if (Number(e.target.value) <= nights) {
-                            setNights(Number(e.target.value) - 1);
-                          }
-                        }}
-                        min={1}
-                        max={30}
-                        className="glass-input w-full"
-                      />
-                      <span className="text-xs text-gray-500 mt-1 block">天</span>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-600 mb-2">
-                        <Calendar size={16} className="inline mr-1 text-primary-mid" />
-                        住宿夜数
-                      </label>
-                      <input
-                        type="number"
-                        value={nights}
-                        onChange={(e) => {
-                          if (Number(e.target.value) < days) {
-                            setNights(Number(e.target.value));
-                          }
-                        }}
-                        min={0}
-                        max={days - 1}
-                        className="glass-input w-full"
-                      />
-                      <span className="text-xs text-gray-500 mt-1 block">夜</span>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-600 mb-2">
-                        <Users size={16} className="inline mr-1 text-primary-mid" />
-                        出行人数
-                      </label>
-                      <input
-                        type="number"
-                        value={people}
-                        onChange={(e) => setPeople(Number(e.target.value))}
-                        min={1}
-                        max={20}
-                        className="glass-input w-full"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-600 mb-2">
-                        <Calendar size={16} className="inline mr-1 text-primary-mid" />
-                        出发日期
-                      </label>
-                      <input
-                        type="date"
-                        value={startDate}
-                        onChange={(e) => setStartDate(e.target.value)}
-                        className="glass-input w-full"
-                      />
-                    </div>
-                  </div>
+          activeTab === 'ai' ? (
+            /* AI 规划 - 文字/语音输入 */
+            <GlassCard className="p-6">
+              <h2 className="text-lg font-bold text-gray-800 mb-4">描述你的旅行想法</h2>
+              <p className="text-sm text-gray-500 mb-4">
+                例如：我想去北京玩3天，想去故宫和长城，想吃北京烤鸭
+              </p>
+              <div className="relative">
+                <textarea
+                  value={aiInput}
+                  onChange={(e) => setAiInput(e.target.value)}
+                  placeholder="描述你的旅行需求..."
+                  className="glass-input w-full h-40 resize-none pr-12"
+                />
+                <button
+                  onClick={() => setIsListening(!isListening)}
+                  className={`absolute bottom-3 right-3 p-3 rounded-full transition-all ${
+                    isListening
+                      ? 'bg-favorite text-white animate-pulse'
+                      : 'bg-white/20 text-gray-600 hover:bg-white/30'
+                  }`}
+                >
+                  <Mic size={20} />
+                </button>
+              </div>
+              <button
+                onClick={handleAIGenerate}
+                disabled={!aiInput.trim()}
+                className="gradient-button w-full mt-6 flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                <Sparkles size={20} />
+                <span>AI 生成行程</span>
+              </button>
+            </GlassCard>
+          ) : (
+            /* 个性化规划 - 表单输入 */
+            <GlassCard className="p-6">
+              <h2 className="text-lg font-bold text-gray-800 mb-6">填写行程信息</h2>
+              <div className="space-y-6">
+                {/* 目的地 */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-600 mb-2">
+                    <MapPin size={16} className="inline mr-1 text-primary-mid" />
+                    目的地城市
+                  </label>
+                  <input
+                    type="text"
+                    value={destination}
+                    onChange={(e) => setDestination(e.target.value)}
+                    placeholder="例如：北京、上海、成都"
+                    className="glass-input w-full"
+                  />
                 </div>
 
-                <button
-                  onClick={() => setStep(2)}
-                  className="gradient-button w-full mt-6"
-                >
-                  下一步：偏好设置
-                </button>
-              </GlassCard>
-            </div>
-
-            {/* Step 2: Preferences */}
-            <div className={`mb-8 ${step === 2 ? 'block' : 'hidden md:block'}`}>
-              <GlassCard className="p-6">
-                <h2 className="text-lg font-bold text-gray-800 mb-6">旅行偏好设置</h2>
-
-                <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-600 mb-3">
-                    选择您感兴趣的旅行主题（可多选）
+                {/* 想去的景点 */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-600 mb-2">
+                    <Building size={16} className="inline mr-1 text-primary-mid" />
+                    想去的景点
                   </label>
-                  <div className="flex flex-wrap gap-3">
-                    {travelPreferences.map((pref) => (
+                  <div className="flex flex-wrap gap-2">
+                    {allPois.map((poi) => (
                       <button
-                        key={pref.id}
-                        onClick={() => togglePref(pref.id)}
-                        className={`tag flex items-center gap-2 ${
-                          selectedPrefs.includes(pref.id)
+                        key={poi.id}
+                        onClick={() => toggleItem(poi.id, selectedPois, setSelectedPois)}
+                        className={`tag text-sm ${
+                          selectedPois.includes(poi.id)
                             ? 'bg-primary-mid/30 border-primary-mid text-primary-mid'
                             : ''
                         }`}
                       >
-                        {pref.name}
+                        {poi.name}
                       </button>
                     ))}
                   </div>
                 </div>
 
-                <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-600 mb-3">
-                    预算范围：¥{budget.toLocaleString()}
+                {/* 想吃的美食 */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-600 mb-2">
+                    <Utensils size={16} className="inline mr-1 text-primary-mid" />
+                    想吃的美食
                   </label>
-                  <input
-                    type="range"
-                    value={budget}
-                    onChange={(e) => setBudget(Number(e.target.value))}
-                    min={1000}
-                    max={20000}
-                    step={500}
-                    className="w-full h-2 rounded-lg appearance-none cursor-pointer"
-                    style={{
-                      background: `linear-gradient(to right, #6366f1 0%, #ec4899 ${(budget / 20000) * 100}%, #e5e7eb ${(budget / 20000) * 100}%)`,
-                    }}
-                  />
-                  <div className="flex justify-between text-xs text-gray-500 mt-2">
-                    <span>¥1,000</span>
-                    <span>¥20,000</span>
+                  <div className="flex flex-wrap gap-2">
+                    {allFoods.map((poi) => (
+                      <button
+                        key={poi.id}
+                        onClick={() => toggleItem(poi.id, selectedFoods, setSelectedFoods)}
+                        className={`tag text-sm ${
+                          selectedFoods.includes(poi.id)
+                            ? 'bg-primary-mid/30 border-primary-mid text-primary-mid'
+                            : ''
+                        }`}
+                      >
+                        {poi.name}
+                      </button>
+                    ))}
                   </div>
                 </div>
 
-                <div className="flex gap-4">
-                  <button
-                    onClick={() => setStep(1)}
-                    className="glass-card px-6 py-3 flex-1 text-center hover:bg-white/20 transition-colors"
-                  >
-                    上一步
-                  </button>
-                  <button
-                    onClick={handleGenerate}
-                    className="gradient-button flex-1 flex items-center justify-center gap-2"
-                  >
-                    <Sparkles size={20} />
-                    <span>AI 生成行程</span>
-                  </button>
+                {/* 想住的酒店 */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-600 mb-2">
+                    <Building size={16} className="inline mr-1 text-primary-mid" />
+                    想住的酒店
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {allHotels.map((poi) => (
+                      <button
+                        key={poi.id}
+                        onClick={() => toggleItem(poi.id, selectedHotels, setSelectedHotels)}
+                        className={`tag text-sm ${
+                          selectedHotels.includes(poi.id)
+                            ? 'bg-primary-mid/30 border-primary-mid text-primary-mid'
+                            : ''
+                        }`}
+                      >
+                        {poi.name}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </GlassCard>
-            </div>
-          </>
+
+                {/* 天数和夜数 */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-600 mb-2">
+                      <Calendar size={16} className="inline mr-1 text-primary-mid" />
+                      行程天数
+                    </label>
+                    <input
+                      type="number"
+                      value={days}
+                      onChange={(e) => {
+                        const d = Number(e.target.value);
+                        setDays(d);
+                        if (nights > d) setNights(d);
+                      }}
+                      min={1}
+                      max={30}
+                      className="glass-input w-full"
+                    />
+                    <span className="text-xs text-gray-500 mt-1 block">天</span>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-600 mb-2">
+                      <Calendar size={16} className="inline mr-1 text-primary-mid" />
+                      住宿夜数
+                    </label>
+                    <input
+                      type="number"
+                      value={nights}
+                      onChange={(e) => setNights(Math.min(Number(e.target.value), days))}
+                      min={0}
+                      max={days}
+                      className="glass-input w-full"
+                    />
+                    <span className="text-xs text-gray-500 mt-1 block">夜</span>
+                  </div>
+                </div>
+
+                {/* 出行人数和预算 */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-600 mb-2">
+                      <Users size={16} className="inline mr-1 text-primary-mid" />
+                      出行人数
+                    </label>
+                    <input
+                      type="number"
+                      value={people}
+                      onChange={(e) => setPeople(Number(e.target.value))}
+                      min={1}
+                      max={20}
+                      className="glass-input w-full"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-600 mb-2">
+                      <DollarSign size={16} className="inline mr-1 text-primary-mid" />
+                      预算
+                    </label>
+                    <input
+                      type="number"
+                      value={budget}
+                      onChange={(e) => setBudget(Number(e.target.value))}
+                      min={1000}
+                      max={50000}
+                      className="glass-input w-full"
+                    />
+                  </div>
+                </div>
+
+                {/* 出发日期 */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-600 mb-2">
+                    <Calendar size={16} className="inline mr-1 text-primary-mid" />
+                    出发日期
+                  </label>
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="glass-input w-full"
+                  />
+                </div>
+              </div>
+
+              <button
+                onClick={handleCustomGenerate}
+                className="gradient-button w-full mt-6 flex items-center justify-center gap-2"
+              >
+                <Sparkles size={20} />
+                <span>生成行程</span>
+              </button>
+            </GlassCard>
+          )
         ) : (
+          /* Generated Itinerary */
           <>
-            {/* Generated Itinerary */}
             <div className="mb-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold text-gray-800">生成的行程安排</h2>

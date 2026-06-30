@@ -162,6 +162,22 @@ export const mockPOIs: POI[] = [
     latitude: 39.9999,
     longitude: 116.2708,
   },
+  {
+    id: '7',
+    name: '北京王府半岛酒店',
+    city: '北京',
+    address: '北京市东城区王府井金宝街8号',
+    type: 'hotel',
+    rating: 4.9,
+    price: 1500,
+    openTime: '全天',
+    description: '五星级酒店，位于王府井商业区，交通便利，服务一流。',
+    images: [
+      'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800',
+    ],
+    latitude: 39.9175,
+    longitude: 116.4130,
+  },
 ];
 
 export const mockTrips: Trip[] = [
