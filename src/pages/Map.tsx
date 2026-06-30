@@ -1,22 +1,23 @@
 import { useState, useMemo } from 'react';
-import { MapPin, Search, Plus, Navigation, Layers } from 'lucide-react';
+import { MapPin, Search, Plus, Navigation, Layers, ChevronDown } from 'lucide-react';
 import GlassCard from '../components/ui/GlassCard';
-import { mockTrips, mockDaySchedules } from '../data/mock';
+import { mockTrips, mockDaySchedules, mockPOIs } from '../data/mock';
 
 export default function Map() {
   const [selectedTrip] = useState(mockTrips[0]);
-  const [viewMode, setViewMode] = useState<'all' | number>('all'); // 'all' | 1 | 2 | 3...
+  const [viewMode, setViewMode] = useState<'all' | number>('all');
   const [selectedPoi, setSelectedPoi] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const [showAddDayModal, setShowAddDayModal] = useState(false);
+  const [poiToAdd, setPoiToAdd] = useState<string | null>(null);
+  const [schedules, setSchedules] = useState(mockDaySchedules.filter((s) => s.tripId === selectedTrip.id));
 
-  const schedules = mockDaySchedules.filter((s) => s.tripId === selectedTrip.id);
-
-  // 根据行程天数生成 Day 选项
   const dayOptions = useMemo(() => {
     const days = schedules.map(s => s.dayIndex);
     return days.sort((a, b) => a - b);
   }, [schedules]);
 
-  // 获取当前显示的景点
   const displayedPois = useMemo(() => {
     if (viewMode === 'all') {
       return schedules.flatMap(day => day.items.map(item => ({
@@ -31,11 +32,17 @@ export default function Map() {
     })) : [];
   }, [schedules, viewMode]);
 
-  // 生成连线路径
+  const searchResults = useMemo(() => {
+    if (!searchQuery.trim()) return [];
+    return mockPOIs.filter(poi =>
+      poi.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      poi.city.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [searchQuery]);
+
   const linePath = useMemo(() => {
     if (displayedPois.length < 2) return '';
     
-    // 模拟点位坐标（实际项目中使用真实经纬度）
     const positions = displayedPois.map((item, index) => ({
       x: 15 + (index % 4) * 22,
       y: 30 + Math.floor(index / 4) * 25,
@@ -62,7 +69,6 @@ export default function Map() {
     shopping: '购物',
   };
 
-  // Day 按钮颜色
   const dayButtonColors = [
     'from-indigo-500 to-purple-500',
     'from-purple-500 to-pink-500',
@@ -73,19 +79,127 @@ export default function Map() {
 
   const handlePoiClick = (poiId: string, dayIndex: number) => {
     setSelectedPoi(poiId);
-    // 如果当前查看全部行程，点击景点时切换到对应的天
     if (viewMode === 'all') {
       setViewMode(dayIndex);
     }
   };
 
+  const handleSearchPoiClick = (poiId: string) => {
+    setPoiToAdd(poiId);
+    setShowAddDayModal(true);
+    setShowSearchResults(false);
+    setSearchQuery('');
+  };
+
+  const handleAddToDay = (dayIndex: number) => {
+    if (!poiToAdd) return;
+    const poi = mockPOIs.find(p => p.id === poiToAdd);
+    if (!poi) return;
+
+    const newItem = {
+      id: `${dayIndex}-${Date.now()}`,
+      poiId: poi.id,
+      poi,
+      startTime: '09:00',
+      endTime: '11:00',
+      type: poi.type as 'scenic' | 'food' | 'hotel' | 'transport' | 'shopping',
+    };
+
+    setSchedules(prev => prev.map(schedule => {
+      if (schedule.dayIndex === dayIndex) {
+        return { ...schedule, items: [...schedule.items, newItem] };
+      }
+      return schedule;
+    }));
+
+    setShowAddDayModal(false);
+    setPoiToAdd(null);
+    setViewMode(dayIndex);
+  };
+
+  const handleMoveToDay = (poiId: string, currentDay: number, newDay: number) => {
+    if (currentDay === newDay) return;
+
+    setSchedules(prev => {
+      const newSchedules = prev.map(schedule => {
+        if (schedule.dayIndex === currentDay) {
+          return { ...schedule, items: schedule.items.filter(i => i.id !== poiId) };
+        }
+        if (schedule.dayIndex === newDay) {
+          const movedItem = prev
+            .find(s => s.dayIndex === currentDay)
+            ?.items.find(i => i.id === poiId);
+          if (movedItem) {
+            return { ...schedule, items: [...schedule.items, movedItem] };
+          }
+        }
+        return schedule;
+      });
+      return newSchedules;
+    });
+
+    if (viewMode === currentDay) {
+      setSelectedPoi(null);
+    }
+  };
+
   return (
     <div className="min-h-screen pb-24 md:pb-0 pt-20 md:pt-8">
+      {/* Search Bar */}
+      <div className="px-4 md:px-6 py-4 bg-white/30 backdrop-blur-xl border-b border-white/20 sticky top-20 md:top-8 z-40">
+        <div className="max-w-4xl mx-auto">
+          <div className="relative">
+            <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400/60" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setShowSearchResults(e.target.value.trim() !== '');
+              }}
+              placeholder="搜索景点、美食、酒店..."
+              className="w-full bg-white/30 backdrop-blur-xl border border-white/30 rounded-xl pl-11 pr-4 py-3 text-gray-700 placeholder-gray-400/60 focus:outline-none focus:ring-2 focus:ring-primary-mid/30"
+            />
+          </div>
+
+          {/* Search Results Dropdown */}
+          {showSearchResults && (
+            <div className="absolute top-full left-4 right-4 mt-2 bg-white/80 backdrop-blur-xl rounded-xl border border-white/40 shadow-xl max-h-64 overflow-y-auto z-50">
+              {searchResults.length > 0 ? (
+                searchResults.map((poi) => (
+                  <button
+                    key={poi.id}
+                    onClick={() => handleSearchPoiClick(poi.id)}
+                    className="w-full p-3 flex items-center gap-3 hover:bg-white/50 transition-colors text-left"
+                  >
+                    <img
+                      src={poi.images[0]}
+                      alt={poi.name}
+                      className="w-12 h-12 rounded-lg object-cover"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-gray-800 truncate">{poi.name}</p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className={`text-xs px-2 py-0.5 rounded ${typeColors[poi.type]}`}>
+                          {typeLabels[poi.type]}
+                        </span>
+                        <span className="text-xs text-gray-500">{poi.city}</span>
+                      </div>
+                    </div>
+                    <Plus size={18} className="text-primary-mid" />
+                  </button>
+                ))
+              ) : (
+                <p className="text-center py-4 text-gray-500 text-sm">未找到相关结果</p>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Map Area */}
-      <div className="relative h-[50vh] md:h-[60vh] bg-gradient-to-br from-slate-100 via-indigo-50/30 to-pink-50/20 overflow-hidden">
-        {/* SVG for markers and lines */}
+      <div className="relative h-[40vh] md:h-[45vh] bg-gradient-to-br from-slate-100 via-indigo-50/30 to-pink-50/20 overflow-hidden">
         <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-          {/* 连线 */}
           {linePath && (
             <path
               d={linePath}
@@ -106,7 +220,6 @@ export default function Map() {
           </defs>
         </svg>
 
-        {/* 景点标记点 */}
         {displayedPois.map((item, index) => {
           const x = 15 + (index % 4) * 22;
           const y = 30 + Math.floor(index / 4) * 25;
@@ -122,7 +235,6 @@ export default function Map() {
               }`}
               style={{ left: `${x}%`, top: `${y}%` }}
             >
-              {/* Marker */}
               <div
                 className={`relative w-12 h-12 rounded-full flex items-center justify-center shadow-lg ${
                   isSelected ? 'ring-4 ring-white ring-opacity-80' : ''
@@ -131,10 +243,7 @@ export default function Map() {
                   background: `linear-gradient(135deg, ${dayButtonColors[dayColorIndex].split(' ').slice(0, 2).join(', ')})`,
                 }}
               >
-                {/* 序号 */}
                 <span className="text-white font-bold text-sm">{index + 1}</span>
-                
-                {/* 脉冲动画 */}
                 {isSelected && (
                   <>
                     <div className="absolute inset-0 rounded-full bg-gradient-primary opacity-30 animate-ping" />
@@ -143,7 +252,6 @@ export default function Map() {
                 )}
               </div>
               
-              {/* 景点名称标签 */}
               <div
                 className={`absolute top-full left-1/2 -translate-x-1/2 mt-2 px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition-all ${
                   isSelected
@@ -162,7 +270,6 @@ export default function Map() {
           );
         })}
 
-        {/* 当前位置标记 */}
         <div className="absolute bottom-6 left-1/2 -translate-x-1/2">
           <div className="relative w-10 h-10">
             <div className="absolute inset-0 bg-blue-500/30 rounded-full animate-ping" />
@@ -173,25 +280,17 @@ export default function Map() {
           <p className="text-xs text-gray-500 mt-2 text-center">当前位置</p>
         </div>
 
-        {/* Map Controls */}
         <div className="absolute top-4 right-4 flex flex-col gap-2">
           <button className="glass-card p-3 hover:bg-white/30 transition-colors">
             <Layers size={20} className="text-gray-700" />
           </button>
         </div>
-
-        {/* 地图提示 */}
-        <div className="absolute bottom-4 right-4 glass-card px-3 py-2 text-xs text-gray-500">
-          <span>点击景点可切换到对应行程</span>
-        </div>
       </div>
 
       {/* Controls Bar */}
-      <div className="px-4 md:px-6 py-4 bg-white/80 backdrop-blur-xl sticky top-20 md:top-8 z-40 border-b border-white/20">
+      <div className="px-4 md:px-6 py-4 bg-white/30 backdrop-blur-xl border-b border-white/20">
         <div className="max-w-4xl mx-auto">
-          {/* 行程选择器 */}
           <div className="flex items-center gap-3 overflow-x-auto scrollbar-hide pb-2">
-            {/* 全部行程 */}
             <button
               onClick={() => setViewMode('all')}
               className={`flex-shrink-0 px-4 py-2 rounded-xl font-medium transition-all ${
@@ -203,7 +302,6 @@ export default function Map() {
               全部行程
             </button>
             
-            {/* Day 选择 */}
             {dayOptions.map((day) => {
               const colorIndex = (day - 1) % dayButtonColors.length;
               return (
@@ -221,25 +319,10 @@ export default function Map() {
               );
             })}
           </div>
-
-          {/* 当前显示信息 */}
-          <div className="flex items-center justify-between mt-2">
-            <p className="text-sm text-gray-500">
-              {viewMode === 'all' 
-                ? `显示全部行程，共 ${displayedPois.length} 个景点`
-                : `Day ${viewMode} 行程，共 ${displayedPois.length} 个景点`
-              }
-            </p>
-            {viewMode !== 'all' && (
-              <p className="text-xs text-gray-400">
-                景点按顺序连线展示
-              </p>
-            )}
-          </div>
         </div>
       </div>
 
-      {/* 景点列表 */}
+      {/* POI List */}
       <div className="px-4 md:px-6 py-4">
         <div className="max-w-4xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -256,7 +339,6 @@ export default function Map() {
                   onClick={() => handlePoiClick(item.id, item.dayIndex)}
                 >
                   <div className="flex items-start gap-3 p-4">
-                    {/* 序号 */}
                     <div
                       className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold shadow-md flex-shrink-0"
                       style={{
@@ -266,14 +348,12 @@ export default function Map() {
                       {index + 1}
                     </div>
                     
-                    {/* 图片 */}
                     <img
                       src={item.poi.images[0]}
                       alt={item.poi.name}
                       className="w-20 h-20 rounded-lg object-cover flex-shrink-0"
                     />
                     
-                    {/* 信息 */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <span className={`text-xs px-2 py-0.5 rounded border ${typeColors[item.type]}`}>
@@ -282,16 +362,6 @@ export default function Map() {
                         <span className="text-xs text-gray-500">
                           {item.startTime}
                         </span>
-                        {viewMode === 'all' && (
-                          <span
-                            className="text-xs px-2 py-0.5 rounded-full text-white"
-                            style={{
-                              background: `linear-gradient(135deg, ${dayButtonColors[dayColorIndex].split(' ').slice(0, 2).join(', ')})`,
-                            }}
-                          >
-                            Day{item.dayIndex}
-                          </span>
-                        )}
                       </div>
                       <h4 className="font-medium text-gray-800 truncate">
                         {item.poi.name}
@@ -299,6 +369,21 @@ export default function Map() {
                       <p className="text-xs text-gray-500 mt-1 truncate">
                         {item.poi.address}
                       </p>
+                    </div>
+                    
+                    {/* Move to different day dropdown */}
+                    <div className="relative">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setPoiToAdd(item.id);
+                          setShowAddDayModal(true);
+                        }}
+                        className="p-2 rounded-lg hover:bg-white/50 transition-colors flex items-center gap-1"
+                      >
+                        <span className="text-xs text-gray-500">Day{item.dayIndex}</span>
+                        <ChevronDown size={14} className="text-gray-400" />
+                      </button>
                     </div>
                   </div>
                 </GlassCard>
@@ -314,6 +399,53 @@ export default function Map() {
           )}
         </div>
       </div>
+
+      {/* Add to Day Modal */}
+      {showAddDayModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white/90 backdrop-blur-xl rounded-3xl p-6 w-[90%] max-w-sm animate-bounce-in">
+            <h3 className="text-lg font-bold text-gray-800 mb-4">
+              {poiToAdd ? '选择添加到哪一天' : '移动到哪一天'}
+            </h3>
+            <div className="space-y-2">
+              {dayOptions.map((day) => {
+                const colorIndex = (day - 1) % dayButtonColors.length;
+                return (
+                  <button
+                    key={day}
+                    onClick={() => handleAddToDay(day)}
+                    className={`w-full p-3 rounded-xl flex items-center justify-between transition-all hover:bg-white/50 ${
+                      viewMode === day ? `ring-2 ring-primary-mid` : ''
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold"
+                        style={{
+                          background: `linear-gradient(135deg, ${dayButtonColors[colorIndex].split(' ').slice(0, 2).join(', ')})`,
+                        }}
+                      >
+                        {day}
+                      </div>
+                      <span className="font-medium text-gray-800">Day {day}</span>
+                    </div>
+                    <Plus size={18} className="text-primary-mid" />
+                  </button>
+                );
+              })}
+            </div>
+            <button
+              onClick={() => {
+                setShowAddDayModal(false);
+                setPoiToAdd(null);
+              }}
+              className="w-full mt-6 py-3 rounded-xl bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"
+            >
+              取消
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

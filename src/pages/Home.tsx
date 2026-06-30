@@ -84,7 +84,7 @@ export default function Home() {
 
           {/* Hot Cities */}
           <div className="mb-10">
-            <h2 className="text-lg font-semibold text-gray-800/80 mb-5">热门目的地</h2>
+            <h2 className="text-lg font-semibold text-gray-800/80 mb-5">热门城市</h2>
             <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
               {hotCities.map((city) => (
                 <GlassCard

@@ -64,7 +64,7 @@ export default function BottomNav() {
     if (tripName.trim()) {
       setShowTripModal(false);
       setTripName('');
-      navigate('/ai-planner');
+      navigate('/profile');
     }
   };
 
