@@ -60,8 +60,8 @@ export default function Home() {
         <div className="relative max-w-6xl mx-auto">
           {/* Header with Logo */}
           <div className="flex items-center gap-3 mb-8">
-            <Logo size={44} />
-            <span className="text-3xl font-bold text-gray-800 tracking-widest" style={{ fontFamily: "'Noto Sans SC', sans-serif", letterSpacing: '0.15em' }}>TUJI</span>
+            <Logo size={52} />
+            <span className="text-2xl font-bold text-gray-800 tracking-widest" style={{ fontFamily: "'Noto Sans SC', sans-serif", letterSpacing: '0.18em' }}>TUJI</span>
           </div>
 
           {/* Search Bar - More transparent/glass */}

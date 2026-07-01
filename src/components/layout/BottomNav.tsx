@@ -86,16 +86,16 @@ export default function BottomNav() {
   };
 
   const bubbleLayers = [
-    { count: 12, sizeMin: 2, sizeMax: 5, durationMin: 2, durationMax: 3, spread: 50, scaleMax: 2, delayStep: 0.1 },
-    { count: 10, sizeMin: 5, sizeMax: 9, durationMin: 2.5, durationMax: 3.5, spread: 70, scaleMax: 2.5, delayStep: 0.15 },
-    { count: 6, sizeMin: 10, sizeMax: 16, durationMin: 3, durationMax: 4, spread: 90, scaleMax: 3, delayStep: 0.25 },
+    { count: 20, sizeMin: 2, sizeMax: 4, durationMin: 2.5, durationMax: 3.5, spread: 60, scaleMax: 2.5, delayStep: 0.06 },
+    { count: 18, sizeMin: 4, sizeMax: 8, durationMin: 3, durationMax: 4, spread: 80, scaleMax: 3, delayStep: 0.08 },
+    { count: 12, sizeMin: 8, sizeMax: 14, durationMin: 3.5, durationMax: 4.5, spread: 100, scaleMax: 3.5, delayStep: 0.12 },
   ];
 
-  const sparkles = Array.from({ length: 15 }, (_, i) => ({
-    size: 2 + Math.random() * 2,
-    offsetX: (Math.random() - 0.5) * 120,
-    delay: i * 0.12,
-    duration: 2 + Math.random() * 1.5,
+  const sparkles = Array.from({ length: 20 }, (_, i) => ({
+    size: 1.5 + Math.random() * 2,
+    offsetX: (Math.random() - 0.5) * 140,
+    delay: i * 0.1,
+    duration: 2.5 + Math.random() * 1.5,
   }));
 
   return (
@@ -166,29 +166,29 @@ export default function BottomNav() {
               </button>
 
               {isRecording && (
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 pointer-events-none" style={{ width: '240px' }}>
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 pointer-events-none" style={{ width: '280px' }}>
                   <div 
                     className="absolute bottom-0 left-1/2 -translate-x-1/2 rounded-full"
                     style={{
-                      width: '180px',
-                      height: '120px',
-                      background: 'radial-gradient(ellipse at center bottom, rgba(139, 92, 246, 0.15) 0%, rgba(99, 102, 241, 0.08) 40%, transparent 70%)',
-                      filter: 'blur(8px)',
+                      width: '200px',
+                      height: '140px',
+                      background: 'radial-gradient(ellipse at center bottom, rgba(139, 92, 246, 0.18) 0%, rgba(99, 102, 241, 0.1) 40%, transparent 70%)',
+                      filter: 'blur(10px)',
                       animation: 'glowBreath 3s ease-in-out infinite',
                     }}
                   />
 
-                  <div className="relative w-full h-64">
+                  <div className="relative w-full h-72">
                     {bubbleLayers.flatMap((layer, layerIdx) =>
                       Array.from({ length: layer.count }, (_, i) => {
-                        const idx = layerIdx * 20 + i;
+                        const idx = layerIdx * 40 + i;
                         const side = i % 2 === 0 ? 1 : -1;
                         const spreadRatio = (i % Math.ceil(layer.count / 2)) / Math.ceil(layer.count / 2);
-                        const offsetX = side * spreadRatio * layer.spread + (Math.sin(idx * 0.7) * 15);
+                        const offsetX = side * spreadRatio * layer.spread + (Math.sin(idx * 0.5) * 12);
                         const size = layer.sizeMin + Math.random() * (layer.sizeMax - layer.sizeMin);
                         const duration = layer.durationMin + Math.random() * (layer.durationMax - layer.durationMin);
-                        const delay = (idx * layer.delayStep) % (layer.durationMax);
-                        const wobble = 8 + Math.random() * 12;
+                        const delay = (idx * layer.delayStep) % layer.durationMax;
+                        const wobble = 6 + Math.random() * 10;
                         return (
                           <div
                             key={`bubble-${idx}`}
@@ -200,7 +200,7 @@ export default function BottomNav() {
                               height: `${size}px`,
                               background: `radial-gradient(circle at 35% 30%, rgba(255,255,255,0.95) 0%, rgba(219, 234, 254, 0.8) 30%, rgba(165, 180, 252, 0.6) 60%, rgba(129, 140, 248, 0.4) 100%)`,
                               boxShadow: `inset 0 -${size/4}px ${size/2}px rgba(99, 102, 241, 0.2), 0 0 ${size/2}px rgba(139, 92, 246, 0.3)`,
-                              animation: `bubbleFloat ${duration}s ease-out infinite`,
+                              animation: `bubbleFloat ${duration}s linear infinite`,
                               animationDelay: `${delay}s`,
                               '--bubble-x': `${offsetX}px`,
                               '--bubble-scale': `${layer.scaleMax}`,
@@ -222,7 +222,7 @@ export default function BottomNav() {
                           height: `${s.size}px`,
                           background: 'radial-gradient(circle, rgba(255,255,255,1) 0%, rgba(191, 219, 254, 0.8) 40%, transparent 70%)',
                           boxShadow: '0 0 6px rgba(255,255,255,0.8)',
-                          animation: `sparkleRise ${s.duration}s ease-out infinite`,
+                          animation: `sparkleRise ${s.duration}s linear infinite`,
                           animationDelay: `${s.delay}s`,
                           '--sparkle-x': `${s.offsetX}px`,
                         } as React.CSSProperties}
@@ -321,29 +321,36 @@ export default function BottomNav() {
       <style>{`
         @keyframes bubbleFloat {
           0% {
-            transform: translateY(0) translateX(0) scale(0.2);
+            transform: translateY(0) translateX(0) scale(0.3);
             opacity: 0;
           }
-          10% {
+          8% {
             opacity: 1;
           }
-          25% {
-            transform: translateY(-40px) translateX(calc(var(--bubble-wobble) * 0.3)) scale(0.5);
+          20% {
+            transform: translateY(-50px) translateX(calc(var(--bubble-wobble) * 0.4)) scale(0.5);
           }
-          50% {
-            transform: translateY(-100px) translateX(calc(var(--bubble-x) * 0.5 - var(--bubble-wobble) * 0.2)) scale(0.8);
+          40% {
+            transform: translateY(-100px) translateX(calc(var(--bubble-x) * 0.3 - var(--bubble-wobble) * 0.3)) scale(0.7);
+          }
+          60% {
+            transform: translateY(-150px) translateX(calc(var(--bubble-x) * 0.6 + var(--bubble-wobble) * 0.2)) scale(0.85);
             opacity: 0.9;
           }
-          75% {
-            transform: translateY(-160px) translateX(calc(var(--bubble-x) * 0.8 + var(--bubble-wobble) * 0.15)) scale(calc(var(--bubble-scale) * 0.8));
+          80% {
+            transform: translateY(-200px) translateX(calc(var(--bubble-x) * 0.85 - var(--bubble-wobble) * 0.1)) scale(var(--bubble-scale));
             opacity: 0.6;
           }
           90% {
-            transform: translateY(-200px) translateX(var(--bubble-x)) scale(var(--bubble-scale));
+            transform: translateY(-220px) translateX(calc(var(--bubble-x) * 0.95)) scale(calc(var(--bubble-scale) * 1.2));
             opacity: 0.3;
           }
+          95% {
+            transform: translateY(-230px) translateX(var(--bubble-x)) scale(calc(var(--bubble-scale) * 1.4));
+            opacity: 0.1;
+          }
           100% {
-            transform: translateY(-230px) translateX(calc(var(--bubble-x) * 1.05)) scale(calc(var(--bubble-scale) * 1.2));
+            transform: translateY(-240px) translateX(calc(var(--bubble-x) * 1.05)) scale(0);
             opacity: 0;
           }
         }
@@ -353,15 +360,18 @@ export default function BottomNav() {
             transform: translateY(0) translateX(0) scale(0);
             opacity: 0;
           }
-          20% {
-            transform: translateY(-30px) translateX(calc(var(--sparkle-x) * 0.3)) scale(1);
+          15% {
+            transform: translateY(-40px) translateX(calc(var(--sparkle-x) * 0.2)) scale(1);
             opacity: 1;
           }
-          60% {
-            opacity: 0.8;
+          50% {
+            opacity: 0.9;
+          }
+          85% {
+            opacity: 0.5;
           }
           100% {
-            transform: translateY(-180px) translateX(var(--sparkle-x)) scale(0.3);
+            transform: translateY(-200px) translateX(var(--sparkle-x)) scale(0.2);
             opacity: 0;
           }
         }
