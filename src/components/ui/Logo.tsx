@@ -1,13 +1,13 @@
-export default function Logo() {
+export default function Logo({ size = 40 }: { size?: number }) {
   return (
-    <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect x="0" y="0" width="40" height="40" rx="10" fill="white" stroke="#1a1a2e" strokeWidth="2" />
-      <circle cx="12" cy="28" r="5" fill="white" stroke="#1a1a2e" strokeWidth="2" />
-      <circle cx="28" cy="12" r="5" fill="white" stroke="#1a1a2e" strokeWidth="2" />
+    <svg width={size} height={size} viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="4" y="4" width="504" height="504" rx="148" fill="white" stroke="#14141f" strokeWidth="2"/>
+      <circle cx="120" cy="400" r="48" fill="white" stroke="#14141f" strokeWidth="2"/>
+      <circle cx="400" cy="120" r="48" fill="white" stroke="#14141f" strokeWidth="2"/>
       <path
-        d="M12 28 C12 28 18 20 28 12"
-        stroke="#1a1a2e"
-        strokeWidth="3"
+        d="M120 400 C135 310 200 265 260 255 C320 245 380 200 400 125"
+        stroke="#14141f"
+        strokeWidth="36"
         strokeLinecap="round"
         fill="none"
       />
