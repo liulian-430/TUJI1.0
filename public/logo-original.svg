@@ -3,18 +3,18 @@
   <!-- 深色圆角背景 -->
   <rect x="4" y="4" width="504" height="504" rx="148" fill="#14141f"/>
   
-  <!-- S形图案组：先画竖直的S，再旋转-40度变成斜的 -->
-  <g transform="translate(256 256) rotate(-40) translate(-256 -256)">
-    <!-- 顶部圆点 -->
-    <circle cx="256" cy="80" r="40" fill="white"/>
-    <!-- 底部圆点 -->
-    <circle cx="256" cy="432" r="40" fill="white"/>
-    <!-- 标准S形曲线：上半段向左凸，下半段向右凸（反向S），两端延伸更长 -->
-    <path d="M256 80 
-             C180 80 180 180 256 256 
-             C332 332 332 432 256 432" 
+  <!-- S形图案组：先画竖直的正S，再旋转35度变成从左上到右下的斜S -->
+  <g transform="translate(256 256) rotate(35) translate(-256 -256)">
+    <!-- 顶部圆点（S的上端） -->
+    <circle cx="256" cy="70" r="42" fill="white"/>
+    <!-- 底部圆点（S的下端） -->
+    <circle cx="256" cy="442" r="42" fill="white"/>
+    <!-- 正S形曲线：上半段向右凸，下半段向左凸 -->
+    <path d="M256 70 
+             C340 70 340 170 256 256 
+             C172 342 172 442 256 442" 
           stroke="white" 
-          stroke-width="40" 
+          stroke-width="42" 
           stroke-linecap="round" 
           fill="none"/>
   </g>
