@@ -1,14 +1,16 @@
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { MapPin, Search, Plus, Navigation, Layers, ChevronDown, Trash2 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { MapPin, Search, Plus, Navigation, Layers, ChevronDown, Trash2, X } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import GlassCard from '../components/ui/GlassCard';
 import EmptyState from '../components/ui/EmptyState';
 import { mockPOIs } from '../data/mock';
 import type { POI, TripPOI } from '../data/mock';
 import { useTripStore } from '@/store/useTripStore';
+import { useToastStore } from '@/store/useToastStore';
+import { useEscKey } from '@/hooks/useEscKey';
 
 // POI 类型对应的圆点颜色（用于地图 Marker）
 const poiTypeColors: Record<string, string> = {
@@ -66,6 +68,27 @@ const createPoiIcon = (type: string, selected: boolean) => {
   });
 };
 
+const layerOptions = [
+  {
+    id: 'standard',
+    name: '标准地图',
+    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    attribution: '&copy; OpenStreetMap contributors',
+  },
+  {
+    id: 'satellite',
+    name: '卫星影像',
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    attribution: 'Tiles &copy; Esri',
+  },
+  {
+    id: 'light',
+    name: '简约浅色',
+    url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+    attribution: '&copy; CARTO',
+  },
+];
+
 // 捕获地图实例并根据 Marker 列表自动调整视野
 function MapController({
   positions,
@@ -91,7 +114,9 @@ function MapController({
 
 export default function Map() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { trips, addPOIToTrip, removePOIFromTrip } = useTripStore();
+  const { showToast } = useToastStore();
 
   const [selectedTripId, setSelectedTripId] = useState<string>('');
   const [viewMode, setViewMode] = useState<'all' | number>('all');
@@ -100,9 +125,32 @@ export default function Map() {
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [showAddDayModal, setShowAddDayModal] = useState(false);
   const [poiToAdd, setPoiToAdd] = useState<POI | null>(null);
+  const [showLayerPanel, setShowLayerPanel] = useState(false);
+  const [activeLayer, setActiveLayer] = useState('standard');
   const mapRef = useRef<L.Map | null>(null);
+  const paramsHandledRef = useRef(false);
 
-  // 默认选中第一个行程
+  useEffect(() => {
+    if (paramsHandledRef.current) return;
+    const tripId = searchParams.get('trip');
+    const city = searchParams.get('city');
+
+    if (tripId && trips.find((t) => t.id === tripId)) {
+      setSelectedTripId(tripId);
+      paramsHandledRef.current = true;
+    } else if (city) {
+      const cityPois = mockPOIs.filter((p) => p.city === city);
+      if (cityPois.length > 0) {
+        setSearchQuery(city);
+        setShowSearchResults(true);
+        showToast(`已为你找到 ${city} 的景点`, 'info');
+      }
+      paramsHandledRef.current = true;
+    } else if (trips.length > 0 && !selectedTripId) {
+      setSelectedTripId(trips[0].id);
+    }
+  }, [searchParams, trips, selectedTripId, showToast]);
+
   useEffect(() => {
     if (trips.length > 0 && !trips.find((t) => t.id === selectedTripId)) {
       setSelectedTripId(trips[0].id);
@@ -233,6 +281,12 @@ export default function Map() {
     }
   };
 
+  const closeAddDayModal = useCallback(() => {
+    setShowAddDayModal(false);
+    setPoiToAdd(null);
+  }, []);
+  useEscKey(closeAddDayModal, showAddDayModal);
+
   // 空状态：store 中没有行程数据
   if (trips.length === 0 || !selectedTrip) {
     return (
@@ -312,8 +366,8 @@ export default function Map() {
           className="w-full h-full"
         >
           <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution={layerOptions.find((l) => l.id === activeLayer)?.attribution}
+            url={layerOptions.find((l) => l.id === activeLayer)?.url || layerOptions[0].url}
           />
           {markerData.map(({ poi, position, day }) => (
             <Marker
@@ -374,9 +428,40 @@ export default function Map() {
 
         {/* 地图右上角工具按钮 */}
         <div className="absolute top-3 right-3 z-[1000] flex flex-col gap-2">
-          <button className="glass-card p-3 hover:bg-white/40 transition-colors">
-            <Layers size={20} className="text-gray-700" />
-          </button>
+          <div className="relative">
+            <button
+              onClick={() => setShowLayerPanel(!showLayerPanel)}
+              className="glass-card p-3 hover:bg-white/40 transition-colors"
+            >
+              <Layers size={20} className="text-gray-700" />
+            </button>
+            {showLayerPanel && (
+              <div className="absolute right-full top-0 mr-2 glass-card rounded-xl p-2 min-w-[120px]">
+                <div className="flex items-center justify-between px-2 py-1 mb-1">
+                  <span className="text-xs font-medium text-gray-700">地图图层</span>
+                  <button onClick={() => setShowLayerPanel(false)} className="text-gray-400 hover:text-gray-600">
+                    <X size={14} />
+                  </button>
+                </div>
+                {layerOptions.map((layer) => (
+                  <button
+                    key={layer.id}
+                    onClick={() => {
+                      setActiveLayer(layer.id);
+                      setShowLayerPanel(false);
+                    }}
+                    className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
+                      activeLayer === layer.id
+                        ? 'bg-primary-mid/10 text-primary-mid font-medium'
+                        : 'text-gray-600 hover:bg-white/50'
+                    }`}
+                  >
+                    {layer.name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <button
             onClick={handleResetView}
             className="glass-card p-3 hover:bg-white/40 transition-colors"

@@ -1,7 +1,9 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { MapPin, Users, Calendar, ArrowRight, CheckCircle2, Share2, X, ImagePlus } from 'lucide-react';
 import GlassCard from '../ui/GlassCard';
 import { Trip } from '@/store/useTripStore';
+import { useToastStore } from '@/store/useToastStore';
+import { useEscKey } from '@/hooks/useEscKey';
 
 interface TripCardProps {
   trip: Trip;
@@ -15,6 +17,7 @@ export default function TripCard({ trip, onClick, onComplete, onShare }: TripCar
   const [shareContent, setShareContent] = useState('');
   const [shareImages, setShareImages] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { showToast } = useToastStore();
   const statusMap: Record<string, { label: string; color: string }> = {
     planning: { label: '规划中', color: 'bg-blue-500/20 text-blue-600' },
     in_progress: { label: '进行中', color: 'bg-green-500/20 text-green-600' },
@@ -59,11 +62,30 @@ export default function TripCard({ trip, onClick, onComplete, onShare }: TripCar
     setShareImages(prev => prev.filter((_, i) => i !== index));
   };
 
-  const handleConfirmShare = () => {
+  const handleConfirmShare = async () => {
     setShowShareModal(false);
-    // In real app, this would post to backend
-    alert('攻略分享成功！');
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: trip.name,
+          text: shareContent,
+        });
+      } else {
+        await navigator.clipboard.writeText(shareContent);
+      }
+      showToast('分享成功', 'success');
+    } catch {
+      try {
+        await navigator.clipboard.writeText(shareContent);
+        showToast('已复制分享内容', 'success');
+      } catch {
+        showToast('分享失败', 'error');
+      }
+    }
   };
+
+  const closeShareModal = useCallback(() => setShowShareModal(false), []);
+  useEscKey(closeShareModal, showShareModal);
 
   const isCompleted = trip.status === 'completed';
 

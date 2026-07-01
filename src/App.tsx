@@ -14,6 +14,7 @@ import Budget from './pages/Budget';
 import Profile from './pages/Profile';
 import GuideDetail from './pages/GuideDetail';
 import Settings from './pages/Settings';
+import { ToastContainer } from './components/ui/Toast';
 
 const mainPages = ['/', '/ai-planner', '/map', '/profile'];
 
@@ -156,7 +157,18 @@ export default function App() {
             <Route path="/guide/:id" element={<GuideDetail />} />
           </Routes>
           <BottomNav />
+          <ToastContainer />
           <style>{`
+            @keyframes slideDown {
+              0% {
+                opacity: 0;
+                transform: translateY(-20px);
+              }
+              100% {
+                opacity: 1;
+                transform: translateY(0);
+              }
+            }
             @keyframes pageFadeIn {
               0% {
                 opacity: 0.3;

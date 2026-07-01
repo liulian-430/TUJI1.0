@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ChevronLeft,
@@ -20,6 +20,8 @@ import {
 import type { LucideIcon } from 'lucide-react';
 import GlassCard from '../components/ui/GlassCard';
 import { useTripStore } from '@/store/useTripStore';
+import { useToastStore } from '@/store/useToastStore';
+import { useEscKey } from '@/hooks/useEscKey';
 
 // 预设头像文字
 const presetAvatars = ['旅', '行', '星', '云', '山', '海', '风', '月', '日', '梦', '途', '远'];
@@ -27,6 +29,7 @@ const presetAvatars = ['旅', '行', '星', '云', '山', '海', '风', '月', '
 export default function Settings() {
   const navigate = useNavigate();
   const { userProfile, updateUserProfile } = useTripStore();
+  const { showToast } = useToastStore();
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [editNickname, setEditNickname] = useState(userProfile.nickname);
   const [editBio, setEditBio] = useState(userProfile.bio);
@@ -35,6 +38,34 @@ export default function Settings() {
   const [notifications, setNotifications] = useState(true);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
 
+  useEffect(() => {
+    const savedDark = localStorage.getItem('tuji-dark-mode') === 'true';
+    const savedNotif = localStorage.getItem('tuji-notifications') !== 'false';
+    setDarkMode(savedDark);
+    setNotifications(savedNotif);
+    if (savedDark) {
+      document.documentElement.classList.add('dark');
+    }
+  }, []);
+
+  const handleDarkModeToggle = (value: boolean) => {
+    setDarkMode(value);
+    localStorage.setItem('tuji-dark-mode', String(value));
+    if (value) {
+      document.documentElement.classList.add('dark');
+      showToast('已开启深色模式', 'success');
+    } else {
+      document.documentElement.classList.remove('dark');
+      showToast('已关闭深色模式', 'success');
+    }
+  };
+
+  const handleNotificationsToggle = (value: boolean) => {
+    setNotifications(value);
+    localStorage.setItem('tuji-notifications', String(value));
+    showToast(value ? '消息通知已开启' : '消息通知已关闭', 'success');
+  };
+
   const handleSaveProfile = () => {
     updateUserProfile({
       nickname: editNickname.trim() || '旅行爱好者',
@@ -42,12 +73,22 @@ export default function Settings() {
       avatar: editAvatar,
     });
     setShowEditProfile(false);
+    showToast('资料已更新', 'success');
   };
 
   const handleClearData = () => {
     localStorage.clear();
     window.location.reload();
   };
+
+  const handleFeatureComing = (name: string) => {
+    showToast(`${name}功能开发中`, 'info');
+  };
+
+  const closeEditProfile = useCallback(() => setShowEditProfile(false), []);
+  const closeClearConfirm = useCallback(() => setShowClearConfirm(false), []);
+  useEscKey(closeEditProfile, showEditProfile);
+  useEscKey(closeClearConfirm, showClearConfirm);
 
   const SettingItem = ({
     icon: Icon,
@@ -170,19 +211,20 @@ export default function Settings() {
                 label="消息通知"
                 toggle
                 toggleValue={notifications}
-                onToggle={setNotifications}
+                onToggle={handleNotificationsToggle}
               />
               <SettingItem
                 icon={Moon}
                 label="深色模式"
                 toggle
                 toggleValue={darkMode}
-                onToggle={setDarkMode}
+                onToggle={handleDarkModeToggle}
               />
               <SettingItem
                 icon={Globe}
                 label="语言"
                 value="简体中文"
+                onClick={() => handleFeatureComing('语言切换')}
               />
             </GlassCard>
           </div>
@@ -193,11 +235,12 @@ export default function Settings() {
               <SettingItem
                 icon={Shield}
                 label="隐私设置"
+                onClick={() => handleFeatureComing('隐私设置')}
               />
               <SettingItem
                 icon={MapPin}
                 label="我的收藏"
-                onClick={() => navigate('/profile')}
+                onClick={() => navigate('/search?tab=poi&favorite=1')}
               />
             </GlassCard>
           </div>
@@ -208,11 +251,13 @@ export default function Settings() {
               <SettingItem
                 icon={HelpCircle}
                 label="帮助与反馈"
+                onClick={() => handleFeatureComing('帮助与反馈')}
               />
               <SettingItem
                 icon={Info}
                 label="关于途迹"
                 value="v1.0.0"
+                onClick={() => handleFeatureComing('关于途迹')}
               />
               <SettingItem
                 icon={Trash2}

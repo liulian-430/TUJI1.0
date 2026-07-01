@@ -1,5 +1,9 @@
 import { useState, useRef, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useTripStore } from '@/store/useTripStore';
+import { useToastStore } from '@/store/useToastStore';
+import type { Trip } from '@/store/useTripStore';
+import { useEscKey } from '@/hooks/useEscKey';
 
 const navItems = [
   { path: '/', label: '首页' },
@@ -11,6 +15,8 @@ const navItems = [
 export default function BottomNav() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { addTrip } = useTripStore();
+  const { showToast } = useToastStore();
   const [isRecording, setIsRecording] = useState(false);
   const [showTripModal, setShowTripModal] = useState(false);
   const [tripName, setTripName] = useState('');
@@ -77,11 +83,31 @@ export default function BottomNav() {
     }
   }, [isRecording]);
 
+  const closeTripModal = useCallback(() => setShowTripModal(false), []);
+  useEscKey(closeTripModal, showTripModal);
+
   const handleCreateTrip = () => {
     if (tripName.trim()) {
+      const newTrip: Trip = {
+        id: `trip-${Date.now()}`,
+        name: tripName.trim(),
+        destination: '未知目的地',
+        days: 1,
+        nights: 0,
+        people: 1,
+        startDate: new Date().toISOString().split('T')[0],
+        status: 'planning',
+        coverImage: 'https://picsum.photos/seed/trip-new/600/400',
+        createdAt: new Date().toISOString(),
+        budget: 0,
+        spent: 0,
+        pois: [],
+      };
+      addTrip(newTrip);
       setShowTripModal(false);
       setTripName('');
-      navigate('/profile');
+      showToast('行程创建成功', 'success');
+      navigate(`/trip/${newTrip.id}`);
     }
   };
 

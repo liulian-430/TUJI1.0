@@ -1,15 +1,19 @@
-import { useState } from 'react';
-import { MapPin, Calendar, ChevronRight, Camera, Heart, Star, MapPinned, History as HistoryIcon, Settings as SettingsIcon } from 'lucide-react';
+import { useState, useCallback } from 'react';
+import { MapPin, Calendar, ChevronRight, Camera, Heart, Star, MapPinned, History as HistoryIcon, Settings as SettingsIcon, X } from 'lucide-react';
 import GlassCard from '../components/ui/GlassCard';
 import EmptyState from '../components/ui/EmptyState';
 import TripCard from '../components/trip/TripCard';
 import { useTripStore } from '@/store/useTripStore';
 import { useNavigate } from 'react-router-dom';
+import { useToastStore } from '@/store/useToastStore';
+import { useEscKey } from '@/hooks/useEscKey';
 
 export default function Profile() {
   const navigate = useNavigate();
   const { trips, favoritePOIs, visitedCities, completeTrip, userProfile } = useTripStore();
+  const { showToast } = useToastStore();
   const [activeTab, setActiveTab] = useState<'current' | 'history'>('current');
+  const [showCitiesModal, setShowCitiesModal] = useState(false);
 
   const currentTrips = trips.filter(t => t.status !== 'completed');
   const historicalTrips = trips.filter(t => t.status === 'completed');
@@ -17,7 +21,25 @@ export default function Profile() {
   const handleCompleteTrip = (tripId: string) => {
     completeTrip(tripId);
     setActiveTab('history');
+    showToast('行程已完成', 'success');
   };
+
+  const handleStatClick = (type: 'footprint' | 'favorite' | 'review') => {
+    if (type === 'favorite') {
+      navigate('/search?tab=poi&favorite=1');
+    } else if (type === 'footprint') {
+      if (visitedCities.length > 0) {
+        setShowCitiesModal(true);
+      } else {
+        showToast('还没有足迹，快去探索吧', 'info');
+      }
+    } else {
+      showToast('暂无评价', 'info');
+    }
+  };
+
+  const closeCitiesModal = useCallback(() => setShowCitiesModal(false), []);
+  useEscKey(closeCitiesModal, showCitiesModal);
 
   return (
     <div className="min-h-screen pb-24 md:pb-8 pt-20 md:pt-24 px-4 md:px-8">
@@ -143,17 +165,26 @@ export default function Profile() {
 
         {/* Quick Stats */}
         <div className="grid grid-cols-3 gap-4 mt-8">
-          <GlassCard className="p-4 text-center cursor-pointer hover:bg-white/20 transition-colors">
+          <GlassCard
+            className="p-4 text-center cursor-pointer hover:bg-white/20 transition-colors"
+            onClick={() => handleStatClick('footprint')}
+          >
             <MapPin size={24} className="mx-auto mb-2 text-blue-500" />
             <p className="text-xs text-gray-500">足迹</p>
             <p className="text-sm font-medium text-gray-700 mt-1">{visitedCities.length}个目的地</p>
           </GlassCard>
-          <GlassCard className="p-4 text-center cursor-pointer hover:bg-white/20 transition-colors">
+          <GlassCard
+            className="p-4 text-center cursor-pointer hover:bg-white/20 transition-colors"
+            onClick={() => handleStatClick('favorite')}
+          >
             <Heart size={24} className="mx-auto mb-2 text-favorite" />
             <p className="text-xs text-gray-500">收藏</p>
             <p className="text-sm font-medium text-gray-700 mt-1">{favoritePOIs.length}个收藏</p>
           </GlassCard>
-          <GlassCard className="p-4 text-center cursor-pointer hover:bg-white/20 transition-colors">
+          <GlassCard
+            className="p-4 text-center cursor-pointer hover:bg-white/20 transition-colors"
+            onClick={() => handleStatClick('review')}
+          >
             <Star size={24} className="mx-auto mb-2 text-yellow-500" />
             <p className="text-xs text-gray-500">评价</p>
             <p className="text-sm font-medium text-gray-700 mt-1">0条评价</p>
@@ -165,6 +196,44 @@ export default function Profile() {
           途迹 v1.0.0
         </p>
       </div>
+
+      {/* 足迹城市弹窗 */}
+      {showCitiesModal && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+          onClick={() => setShowCitiesModal(false)}
+        >
+          <div
+            className="w-full max-w-sm bg-white rounded-3xl shadow-2xl overflow-hidden animate-bounce-in"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between p-5 border-b border-gray-100">
+              <h3 className="text-lg font-bold text-gray-800">我的足迹</h3>
+              <button
+                onClick={() => setShowCitiesModal(false)}
+                className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
+              >
+                <X size={18} className="text-gray-500" />
+              </button>
+            </div>
+            <div className="p-5 max-h-72 overflow-y-auto">
+              <div className="flex flex-wrap gap-2">
+                {visitedCities.map((city) => (
+                  <span
+                    key={city}
+                    className="px-3 py-1.5 rounded-full bg-primary-mid/10 text-primary-mid text-sm font-medium"
+                  >
+                    {city}
+                  </span>
+                ))}
+              </div>
+              {visitedCities.length === 0 && (
+                <p className="text-center text-gray-400 text-sm py-8">还没有足迹，快去探索吧</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,6 +1,8 @@
 import { Star, Heart } from 'lucide-react';
 import GlassCard from '../ui/GlassCard';
 import { POI } from '../../data/mock';
+import { useTripStore } from '@/store/useTripStore';
+import { useToastStore } from '@/store/useToastStore';
 
 interface POICardProps {
   poi: POI;
@@ -9,11 +11,23 @@ interface POICardProps {
 }
 
 export default function POICard({ poi, onClick, compact = false }: POICardProps) {
+  const { favoritePOIs, toggleFavoritePOI } = useTripStore();
+  const { showToast } = useToastStore();
+  const isFavorited = favoritePOIs.includes(poi.id) || favoritePOIs.includes(poi.name);
+
   const typeMap = {
     scenic: { label: '景点', color: 'bg-green-500/20 text-green-600' },
     food: { label: '美食', color: 'bg-red-500/20 text-red-600' },
     hotel: { label: '酒店', color: 'bg-blue-500/20 text-blue-600' },
     shopping: { label: '购物', color: 'bg-purple-500/20 text-purple-600' },
+  };
+
+  const handleFavorite = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    toggleFavoritePOI(poi.id);
+    if (!favoritePOIs.includes(poi.id)) {
+      showToast('已收藏', 'success');
+    }
   };
 
   if (compact) {
@@ -32,8 +46,8 @@ export default function POICard({ poi, onClick, compact = false }: POICardProps)
           </div>
           <p className="text-xs text-gray-500 truncate mt-1">{poi.address}</p>
         </div>
-        <button className="self-start p-1">
-          <Heart size={16} className="text-gray-400 hover:text-favorite transition-colors" />
+        <button onClick={handleFavorite} className="self-start p-1">
+          <Heart size={16} className={`transition-colors ${isFavorited ? 'text-favorite fill-favorite' : 'text-gray-400 hover:text-favorite'}`} />
         </button>
       </GlassCard>
     );
@@ -52,8 +66,11 @@ export default function POICard({ poi, onClick, compact = false }: POICardProps)
             {typeMap[poi.type].label}
           </span>
         </div>
-        <button className="absolute top-3 right-3 p-2 rounded-full bg-white/50 backdrop-blur-sm hover:bg-white transition-colors">
-          <Heart size={16} className="text-gray-600 hover:text-favorite transition-colors" />
+        <button
+          onClick={handleFavorite}
+          className="absolute top-3 right-3 p-2 rounded-full bg-white/50 backdrop-blur-sm hover:bg-white transition-colors"
+        >
+          <Heart size={16} className={`transition-colors ${isFavorited ? 'text-favorite fill-favorite' : 'text-gray-600 hover:text-favorite'}`} />
         </button>
         {poi.price > 0 && (
           <div className="absolute bottom-3 right-3">

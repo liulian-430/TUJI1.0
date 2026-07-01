@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, Check, Calendar, MapPin, DollarSign, ChevronDown } from 'lucide-react';
+import { Sparkles, Check, Calendar, MapPin, DollarSign, ChevronDown, ChevronUp, Users } from 'lucide-react';
 import { useTripStore, type Trip } from '@/store/useTripStore';
+import { useToastStore } from '@/store/useToastStore';
 
 export default function NewTrip() {
   const navigate = useNavigate();
   const { pendingTrip, clearPendingTrip, addTrip, trips } = useTripStore();
+  const { showToast } = useToastStore();
   const [tripName, setTripName] = useState('');
+  const [isExpanded, setIsExpanded] = useState(false);
 
   useEffect(() => {
     if (pendingTrip) {
@@ -21,15 +24,20 @@ export default function NewTrip() {
       name: tripName || pendingTrip.name,
       destination: pendingTrip.destination,
       days: pendingTrip.days,
+      nights: pendingTrip.nights ?? Math.max(0, pendingTrip.days - 1),
+      people: pendingTrip.people ?? 1,
       startDate: new Date().toISOString().split('T')[0],
-      budget: 3000,
+      budget: pendingTrip.budget ?? 3000,
       spent: 0,
       pois: pendingTrip.pois,
       status: 'in_progress',
       daysList: pendingTrip.schedules,
+      coverImage: pendingTrip.pois[0]?.image || 'https://picsum.photos/seed/trip-new/600/400',
+      createdAt: new Date().toISOString(),
     };
     addTrip(newTrip);
     clearPendingTrip();
+    showToast('行程保存成功', 'success');
     navigate(`/trip/${newTrip.id}`);
   };
 
@@ -65,7 +73,16 @@ export default function NewTrip() {
               </div>
               <div>
                 <p className="text-sm text-gray-500">行程天数</p>
-                <p className="font-medium text-gray-800">{pendingTrip.days} 天</p>
+                <p className="font-medium text-gray-800">{pendingTrip.days} 天 {pendingTrip.nights ?? Math.max(0, pendingTrip.days - 1)} 晚</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-primary-mid/10 flex items-center justify-center">
+                <Users size={18} className="text-primary-mid" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">出行人数</p>
+                <p className="font-medium text-gray-800">{pendingTrip.people ?? 1} 人</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -73,8 +90,8 @@ export default function NewTrip() {
                 <DollarSign size={18} className="text-primary-mid" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">景点数量</p>
-                <p className="font-medium text-gray-800">{pendingTrip.pois.length} 个景点</p>
+                <p className="text-sm text-gray-500">预计预算</p>
+                <p className="font-medium text-gray-800">¥{pendingTrip.budget ?? 3000}</p>
               </div>
             </div>
           </div>
@@ -82,12 +99,15 @@ export default function NewTrip() {
           <div className="glass-card p-5 mb-6">
             <div className="flex items-center justify-between mb-3">
               <p className="font-medium text-gray-800">行程预览</p>
-              <button className="text-sm text-primary-mid flex items-center gap-1">
-                <span>展开</span>
-                <ChevronDown size={14} />
+              <button
+                onClick={() => setIsExpanded(!isExpanded)}
+                className="text-sm text-primary-mid flex items-center gap-1 hover:text-primary-dark transition-colors"
+              >
+                <span>{isExpanded ? '收起' : '展开'}</span>
+                {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
               </button>
             </div>
-            <div className="space-y-3 max-h-60 overflow-y-auto">
+            <div className={`space-y-3 overflow-hidden transition-all duration-300 ${isExpanded ? 'max-h-[500px] overflow-y-auto' : 'max-h-60 overflow-hidden'}`}>
               {pendingTrip.schedules.map((day, idx) => (
                 <div key={idx} className="p-3 rounded-xl bg-white/40">
                   <p className="text-sm font-medium text-primary-mid mb-2">Day {idx + 1}</p>
@@ -105,6 +125,11 @@ export default function NewTrip() {
                 </div>
               ))}
             </div>
+            {!isExpanded && pendingTrip.schedules.length > 3 && (
+              <div className="mt-2 text-center">
+                <span className="text-xs text-gray-400">还有 {pendingTrip.schedules.length - 3} 天行程...</span>
+              </div>
+            )}
           </div>
 
           <div className="flex gap-3">

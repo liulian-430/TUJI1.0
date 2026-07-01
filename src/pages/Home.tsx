@@ -130,7 +130,10 @@ export default function Home() {
           <div className="mb-10">
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-lg font-semibold text-gray-800/80">发现</h2>
-              <button className="flex items-center gap-1 text-primary-mid/80 text-sm font-medium">
+              <button
+                onClick={() => navigate('/search?tab=guide')}
+                className="flex items-center gap-1 text-primary-mid/80 text-sm font-medium hover:text-primary-mid transition-colors"
+              >
                 <span>更多</span>
                 <ChevronRight size={16} />
               </button>

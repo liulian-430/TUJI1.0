@@ -1,20 +1,26 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, Heart, Clock, MapPin, Bookmark, Plus, User, Share2 } from 'lucide-react';
+import { ChevronLeft, Heart, Clock, MapPin, Plus, User, Share2 } from 'lucide-react';
 import GlassCard from '../components/ui/GlassCard';
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useTripStore } from '@/store/useTripStore';
 import { userGuides } from '@/data/mock';
+import type { TripPOI } from '@/data/mock';
+import { useToastStore } from '@/store/useToastStore';
+import { mockPOIs } from '@/data/mock';
+import { useEscKey } from '@/hooks/useEscKey';
 
 export default function GuideDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { trips, addPOIToTrip } = useTripStore();
+  const { trips, addPOIToTrip, favoritePOIs, toggleFavoritePOI } = useTripStore();
+  const { showToast } = useToastStore();
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedPoi, setSelectedPoi] = useState('');
   const [selectedTrip, setSelectedTrip] = useState('');
 
   const guide = userGuides.find((g) => g.id === id) || userGuides[0];
   const allTrips = trips;
+  const isAddAll = selectedPoi === '全部景点';
 
   const typeColors = {
     scenic: 'bg-green-500/20 text-green-600 border-green-500/30',
@@ -26,6 +32,20 @@ export default function GuideDetail() {
     scenic: '景点',
     food: '美食',
     hotel: '住宿',
+  };
+
+  const guidePoiToTripPoi = (guidePoi: typeof guide.poiDetails[0], idx: number): TripPOI => {
+    const matchedPoi = mockPOIs.find((p) => p.name === guidePoi.name);
+    return {
+      id: `guide-poi-${Date.now()}-${idx}`,
+      name: guidePoi.name,
+      type: guidePoi.type,
+      duration: guidePoi.duration,
+      price: guidePoi.price,
+      image: guidePoi.image,
+      latitude: matchedPoi?.latitude,
+      longitude: matchedPoi?.longitude,
+    };
   };
 
   const handleAddPoi = (poiName: string) => {
@@ -41,8 +61,57 @@ export default function GuideDetail() {
   };
 
   const confirmAdd = () => {
+    if (!selectedTrip) return;
+    if (isAddAll) {
+      guide.poiDetails.forEach((poi, idx) => {
+        addPOIToTrip(selectedTrip, guidePoiToTripPoi(poi, idx));
+      });
+      showToast(`已添加 ${guide.poiDetails.length} 个景点到行程`, 'success');
+    } else {
+      const poi = guide.poiDetails.find((p) => p.name === selectedPoi);
+      if (poi) {
+        addPOIToTrip(selectedTrip, guidePoiToTripPoi(poi, 0));
+        showToast('已添加到行程', 'success');
+      }
+    }
     setShowAddModal(false);
+    navigate(`/map?trip=${selectedTrip}`);
   };
+
+  const handleFavorite = () => {
+    const firstPoi = guide.poiDetails[0];
+    if (firstPoi) {
+      toggleFavoritePOI(firstPoi.name);
+      const isFav = favoritePOIs.includes(firstPoi.name);
+      showToast(isFav ? '已取消收藏' : '已收藏攻略', 'success');
+    }
+  };
+
+  const handleShare = async () => {
+    const shareData = {
+      title: guide.title,
+      text: guide.description,
+      url: window.location.href,
+    };
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        await navigator.clipboard.writeText(window.location.href);
+        showToast('链接已复制到剪贴板', 'success');
+      }
+    } catch {
+      try {
+        await navigator.clipboard.writeText(window.location.href);
+        showToast('链接已复制到剪贴板', 'success');
+      } catch {
+        showToast('分享失败', 'error');
+      }
+    }
+  };
+
+  const closeAddModal = useCallback(() => setShowAddModal(false), []);
+  useEscKey(closeAddModal, showAddModal);
 
   return (
     <div className="min-h-screen pb-24 md:pb-8 pt-20 md:pt-8">
@@ -163,11 +232,11 @@ export default function GuideDetail() {
 
       {/* Bottom Action Bar */}
       <div className="fixed bottom-24 left-0 right-0 glass-card mx-4 p-4 flex items-center gap-4 md:hidden z-30">
-        <button className="flex flex-col items-center gap-1 p-2 text-gray-500">
-          <Heart size={22} />
+        <button onClick={handleFavorite} className={`flex flex-col items-center gap-1 p-2 ${favoritePOIs.includes(guide.poiDetails[0]?.name) ? 'text-favorite' : 'text-gray-500'}`}>
+          <Heart size={22} fill={favoritePOIs.includes(guide.poiDetails[0]?.name) ? 'currentColor' : 'none'} />
           <span className="text-xs">收藏</span>
         </button>
-        <button className="flex flex-col items-center gap-1 p-2 text-gray-500">
+        <button onClick={handleShare} className="flex flex-col items-center gap-1 p-2 text-gray-500">
           <Share2 size={22} />
           <span className="text-xs">分享</span>
         </button>

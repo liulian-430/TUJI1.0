@@ -70,6 +70,9 @@ interface TripState {
     name: string;
     destination: string;
     days: number;
+    nights?: number;
+    people?: number;
+    budget?: number;
     schedules: DayScheduleSimple[];
     pois: TripPOI[];
   } | null;
@@ -77,6 +80,9 @@ interface TripState {
     name: string;
     destination: string;
     days: number;
+    nights?: number;
+    people?: number;
+    budget?: number;
     schedules: DayScheduleSimple[];
     pois: TripPOI[];
   }) => void;

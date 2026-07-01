@@ -5,11 +5,13 @@ import GlassCard from '../components/ui/GlassCard';
 import AILoadingState from '../components/ui/Skeleton';
 import { mockPOIs, DaySchedule, TripPOI } from '../data/mock';
 import { useTripStore } from '@/store/useTripStore';
+import { useToastStore } from '@/store/useToastStore';
 
 export default function AIPlanner() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { setPendingTrip } = useTripStore();
+  const { showToast } = useToastStore();
   const [activeTab, setActiveTab] = useState<'ai' | 'custom'>('ai');
   const [aiInput, setAiInput] = useState('');
   const [isListening, setIsListening] = useState(false);
@@ -18,8 +20,25 @@ export default function AIPlanner() {
     const voice = searchParams.get('voice');
     if (voice === 'true') {
       setAiInput('我想去北京玩3天，想去故宫和长城，想吃北京烤鸭，住靠近市中心的酒店，预算3000元');
+      showToast('已识别语音输入', 'success');
     }
-  }, [searchParams]);
+  }, [searchParams, showToast]);
+
+  const handleMicClick = () => {
+    if (isListening) {
+      setIsListening(false);
+      setAiInput('我想去北京玩3天，想去故宫和长城，想吃北京烤鸭，住靠近市中心的酒店，预算3000元');
+      showToast('语音识别完成', 'success');
+    } else {
+      setIsListening(true);
+      showToast('正在聆听...', 'info');
+      setTimeout(() => {
+        setIsListening(false);
+        setAiInput('我想去北京玩3天，想去故宫和长城，想吃北京烤鸭，住靠近市中心的酒店，预算3000元');
+        showToast('语音识别完成', 'success');
+      }, 2000);
+    }
+  };
 
   // 个性化规划状态
   const [destination, setDestination] = useState('');
@@ -194,7 +213,7 @@ export default function AIPlanner() {
                   className="glass-input w-full h-40 resize-none pr-12"
                 />
                 <button
-                  onClick={() => setIsListening(!isListening)}
+                  onClick={handleMicClick}
                   className={`absolute bottom-3 right-3 p-3 rounded-full transition-all ${
                     isListening
                       ? 'bg-favorite text-white animate-pulse'
@@ -422,6 +441,9 @@ export default function AIPlanner() {
                         name: `${destination || '北京'}${days}日游`,
                         destination: destination || '北京',
                         days,
+                        nights,
+                        people,
+                        budget,
                         schedules: simpleSchedules,
                         pois: allPOIs,
                       });
