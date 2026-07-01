@@ -3,24 +3,19 @@
   <!-- 深色圆角背景 -->
   <rect x="4" y="4" width="504" height="504" rx="148" fill="#14141f"/>
   
-  <!-- 左下圆点（S的下端点） -->
-  <circle cx="120" cy="390" r="40" fill="white"/>
-  
-  <!-- 右上圆点（S的上端点） -->
-  <circle cx="392" cy="122" r="40" fill="white"/>
-  
-  <!-- 标准S形曲线：
-       从左下圆点出发
-       先向右上弯（下半段，像反C）
-       中间经过中心
-       再向右上弯（上半段，像正C）
-       到达右上圆点
-  -->
-  <path d="M120 390 
-           C180 390 200 320 256 280 
-           C312 240 332 180 392 122" 
-        stroke="white" 
-        stroke-width="38" 
-        stroke-linecap="round" 
-        fill="none"/>
+  <!-- S形图案组：先画竖直的S，再旋转-40度变成斜的 -->
+  <g transform="translate(256 256) rotate(-40) translate(-256 -256)">
+    <!-- 顶部圆点 -->
+    <circle cx="256" cy="100" r="42" fill="white"/>
+    <!-- 底部圆点 -->
+    <circle cx="256" cy="412" r="42" fill="white"/>
+    <!-- 标准S形曲线：上半段向右凸，下半段向左凸 -->
+    <path d="M256 100 
+             C330 100 330 200 256 256 
+             C182 312 182 412 256 412" 
+          stroke="white" 
+          stroke-width="40" 
+          stroke-linecap="round" 
+          fill="none"/>
+  </g>
 </svg>
