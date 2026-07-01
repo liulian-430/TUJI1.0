@@ -135,22 +135,34 @@ export default function BottomNav() {
               </button>
 
               {isRecording && (
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 pointer-events-none">
-                  <div className="relative w-32 h-40">
-                    {[...Array(24)].map((_, i) => (
-                      <div
-                        key={i}
-                        className="absolute rounded-full bg-gradient-to-br from-white/60 to-indigo-400/40 backdrop-blur-sm"
-                        style={{
-                          left: `${50 + Math.sin(i * 1.3) * 40}%`,
-                          bottom: '0',
-                          width: `${6 + Math.random() * 8}px`,
-                          height: `${6 + Math.random() * 8}px`,
-                          animation: `bubbleRise ${1.5 + Math.random() * 1}s ease-out infinite`,
-                          animationDelay: `${i * 0.08}s`,
-                        }}
-                      />
-                    ))}
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 pointer-events-none">
+                  <div className="relative w-48 h-56 -ml-8">
+                    {[...Array(30)].map((_, i) => {
+                      const spread = (i % 10) / 10;
+                      const side = i % 2 === 0 ? 1 : -1;
+                      const offsetX = side * spread * 80 + (Math.random() - 0.5) * 20;
+                      const size = 4 + Math.random() * 4;
+                      const duration = 1.8 + Math.random() * 1.2;
+                      const delay = (i * 0.06) % 2;
+                      return (
+                        <div
+                          key={i}
+                          className="absolute rounded-full"
+                          style={{
+                            left: '50%',
+                            bottom: '0',
+                            width: `${size}px`,
+                            height: `${size}px`,
+                            background: `radial-gradient(circle at 30% 30%, rgba(255,255,255,0.9), rgba(129,140,248,0.6), rgba(99,102,241,0.4))`,
+                            boxShadow: '0 0 4px rgba(129,140,248,0.5)',
+                            animation: `bubbleRise ${duration}s ease-out infinite`,
+                            animationDelay: `${delay}s`,
+                            '--bubble-x': `${offsetX}px`,
+                            '--bubble-scale': `${1.5 + Math.random() * 1.5}`,
+                          } as React.CSSProperties}
+                        />
+                      );
+                    })}
                   </div>
                   
                   <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap">
@@ -232,11 +244,21 @@ export default function BottomNav() {
       <style>{`
         @keyframes bubbleRise {
           0% {
-            transform: translateY(0) scale(1);
-            opacity: 0.8;
+            transform: translateY(0) translateX(0) scale(0.3);
+            opacity: 1;
+          }
+          30% {
+            opacity: 0.9;
+          }
+          70% {
+            opacity: 0.6;
+          }
+          90% {
+            transform: translateY(-180px) translateX(var(--bubble-x)) scale(var(--bubble-scale));
+            opacity: 0.3;
           }
           100% {
-            transform: translateY(-120px) scale(0.3);
+            transform: translateY(-200px) translateX(calc(var(--bubble-x) * 1.1)) scale(calc(var(--bubble-scale) * 1.3));
             opacity: 0;
           }
         }
