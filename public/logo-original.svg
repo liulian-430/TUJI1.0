@@ -6,13 +6,13 @@
   <!-- S形图案组：先画竖直的S，再旋转-40度变成斜的 -->
   <g transform="translate(256 256) rotate(-40) translate(-256 -256)">
     <!-- 顶部圆点 -->
-    <circle cx="256" cy="100" r="42" fill="white"/>
+    <circle cx="256" cy="80" r="40" fill="white"/>
     <!-- 底部圆点 -->
-    <circle cx="256" cy="412" r="42" fill="white"/>
-    <!-- 标准S形曲线：上半段向右凸，下半段向左凸 -->
-    <path d="M256 100 
-             C330 100 330 200 256 256 
-             C182 312 182 412 256 412" 
+    <circle cx="256" cy="432" r="40" fill="white"/>
+    <!-- 标准S形曲线：上半段向左凸，下半段向右凸（反向S），两端延伸更长 -->
+    <path d="M256 80 
+             C180 80 180 180 256 256 
+             C332 332 332 432 256 432" 
           stroke="white" 
           stroke-width="40" 
           stroke-linecap="round" 
