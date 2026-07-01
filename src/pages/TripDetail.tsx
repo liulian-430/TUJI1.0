@@ -1,8 +1,9 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
-import { MapPin, Users, Calendar, Edit2, Trash2, ChevronLeft, Plus, Clock, Navigation, AlertTriangle, Wallet, Route as RouteIcon } from 'lucide-react';
+import { MapPin, Users, Calendar, Edit2, Trash2, ChevronLeft, Plus, Clock, Navigation, AlertTriangle, Wallet, Route as RouteIcon, Share2, UserPlus, X, Copy, Check, Link as LinkIcon } from 'lucide-react';
 import GlassCard from '../components/ui/GlassCard';
 import EmptyState from '../components/ui/EmptyState';
+import WeatherWidget from '../components/ui/WeatherWidget';
 import { useTripStore } from '@/store/useTripStore';
 import type { DayScheduleSimple } from '@/store/useTripStore';
 import type { TripPOI } from '../data/mock';
@@ -32,8 +33,12 @@ const typeLabels: Record<string, string> = {
 export default function TripDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { trips, expenses, removeTrip, completeTrip } = useTripStore();
+  const { trips, expenses, removeTrip, completeTrip, collaborators, addCollaborator, removeCollaborator, userProfile } = useTripStore();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteName, setInviteName] = useState('');
+  const [copied, setCopied] = useState(false);
 
   const trip = trips.find((t) => t.id === id);
 
@@ -61,6 +66,77 @@ export default function TripDetail() {
   const nights = trip.nights ?? Math.max(0, trip.days - 1);
   const people = trip.people ?? 1;
   const coverImage = trip.coverImage || 'https://picsum.photos/seed/trip-detail/600/400';
+
+  // 行程成员列表（含当前用户作为所有者）
+  const tripCollaborators = [
+    {
+      id: 'owner',
+      nickname: userProfile.nickname,
+      avatar: userProfile.avatar,
+      role: 'owner' as const,
+      tripId: trip.id,
+    },
+    ...collaborators.filter((c) => c.tripId === trip.id),
+  ];
+
+  const roleLabels: Record<string, string> = {
+    owner: '所有者',
+    editor: '编辑者',
+    viewer: '查看者',
+  };
+  const roleColors: Record<string, string> = {
+    owner: 'bg-gradient-primary text-white',
+    editor: 'bg-blue-100 text-blue-600',
+    viewer: 'bg-gray-100 text-gray-600',
+  };
+
+  // 复制邀请链接
+  const shareLink = `${window.location.origin}/trip/${trip.id}`;
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(shareLink);
+    } catch {
+      const input = document.createElement('input');
+      input.value = shareLink;
+      document.body.appendChild(input);
+      input.select();
+      document.execCommand('copy');
+      document.body.removeChild(input);
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  // 原生分享
+  const handleNativeShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: trip.name,
+          text: `${trip.destination} · ${trip.days}天${nights}夜行程，一起出发吧！`,
+          url: shareLink,
+        });
+      } catch {
+        // 用户取消，不处理
+      }
+    } else {
+      handleCopyLink();
+    }
+  };
+
+  // 添加成员
+  const handleAddMember = () => {
+    if (!inviteName.trim()) return;
+    const avatarChar = inviteName.trim()[0];
+    addCollaborator({
+      nickname: inviteName.trim(),
+      avatar: avatarChar,
+      role: 'editor',
+      tripId: trip.id,
+    });
+    setInviteName('');
+    setShowInviteModal(false);
+  };
 
   // 状态映射（兼容 in_progress / ongoing）
   const statusInfo: Record<string, { label: string; color: string }> = {
@@ -117,6 +193,13 @@ export default function TripDetail() {
         </button>
 
         <div className="absolute top-4 right-4 flex gap-2">
+          <button
+            onClick={() => setShowShareModal(true)}
+            className="w-10 h-10 rounded-full bg-white/30 backdrop-blur-sm flex items-center justify-center hover:bg-white/50 transition-colors"
+            aria-label="分享"
+          >
+            <Share2 size={20} className="text-white" />
+          </button>
           <button
             onClick={() => navigate(`/map?trip=${trip.id}`)}
             className="w-10 h-10 rounded-full bg-white/30 backdrop-blur-sm flex items-center justify-center hover:bg-white/50 transition-colors"
@@ -187,6 +270,41 @@ export default function TripDetail() {
           </button>
         </div>
 
+        {/* Members */}
+        <GlassCard className="p-5 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-bold text-gray-800 flex items-center gap-2">
+              <Users size={18} className="text-primary-mid" />
+              行程成员
+              <span className="text-sm font-normal text-gray-400">({tripCollaborators.length})</span>
+            </h2>
+            <button
+              onClick={() => setShowInviteModal(true)}
+              className="flex items-center gap-1 text-sm text-primary-mid hover:underline"
+            >
+              <UserPlus size={14} />
+              邀请
+            </button>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            {tripCollaborators.map((member) => (
+              <div key={member.id} className="flex items-center gap-2 bg-white/40 rounded-full pr-3 pl-1 py-1">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                  member.role === 'owner' ? 'bg-gradient-primary text-white' : 'bg-gray-200 text-gray-600'
+                }`}>
+                  {member.avatar}
+                </div>
+                <span className="text-sm font-medium text-gray-700 max-w-[80px] truncate">
+                  {member.nickname}
+                </span>
+                <span className={`text-xs px-2 py-0.5 rounded-full ${roleColors[member.role] || roleColors.viewer}`}>
+                  {roleLabels[member.role] || '查看者'}
+                </span>
+              </div>
+            ))}
+          </div>
+        </GlassCard>
+
         {/* Budget Overview */}
         <GlassCard className="p-6 mb-6">
           <div className="flex items-center justify-between mb-4">
@@ -231,6 +349,12 @@ export default function TripDetail() {
             </div>
           )}
         </GlassCard>
+
+        {/* Weather */}
+        <div className="mb-6">
+          <h2 className="text-lg font-bold text-gray-800 mb-3">目的地天气</h2>
+          <WeatherWidget city={trip.destination} compact />
+        </div>
 
         {/* Itinerary */}
         <div className="relative">
@@ -341,6 +465,191 @@ export default function TripDetail() {
           })}
         </div>
       </div>
+
+      {/* 分享弹窗 */}
+      {showShareModal && (
+        <div
+          className="fixed inset-0 z-[100] flex items-end md:items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+          onClick={() => setShowShareModal(false)}
+        >
+          <div
+            className="w-full max-w-md bg-white rounded-3xl shadow-2xl animate-bounce-in"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between p-5 border-b border-gray-100">
+              <h3 className="text-lg font-bold text-gray-800">分享行程</h3>
+              <button
+                onClick={() => setShowShareModal(false)}
+                className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
+              >
+                <X size={18} className="text-gray-500" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              {/* 行程摘要 */}
+              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-2xl">
+                <img
+                  src={coverImage}
+                  alt={trip.name}
+                  className="w-14 h-14 rounded-xl object-cover"
+                />
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-gray-800 truncate">{trip.name}</p>
+                  <p className="text-xs text-gray-500">
+                    {trip.destination} · {trip.days}天{nights}夜
+                  </p>
+                </div>
+              </div>
+
+              {/* 分享链接 */}
+              <div>
+                <p className="text-sm text-gray-600 mb-2">复制链接</p>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 flex items-center gap-2 px-4 py-2.5 bg-gray-50 rounded-xl text-sm text-gray-600 truncate">
+                    <LinkIcon size={14} className="text-gray-400 flex-shrink-0" />
+                    <span className="truncate">{shareLink}</span>
+                  </div>
+                  <button
+                    onClick={handleCopyLink}
+                    className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center gap-1 ${
+                      copied
+                        ? 'bg-green-500 text-white'
+                        : 'bg-gradient-primary text-white hover:opacity-90'
+                    }`}
+                  >
+                    {copied ? (
+                      <>
+                        <Check size={14} />
+                        已复制
+                      </>
+                    ) : (
+                      <>
+                        <Copy size={14} />
+                        复制
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* 原生分享 */}
+              <button
+                onClick={handleNativeShare}
+                className="w-full py-3 rounded-xl bg-gradient-primary text-white font-medium flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
+              >
+                <Share2 size={18} />
+                分享给好友
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 邀请成员弹窗 */}
+      {showInviteModal && (
+        <div
+          className="fixed inset-0 z-[100] flex items-end md:items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+          onClick={() => setShowInviteModal(false)}
+        >
+          <div
+            className="w-full max-w-md bg-white rounded-3xl shadow-2xl animate-bounce-in max-h-[85vh] overflow-hidden flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between p-5 border-b border-gray-100">
+              <h3 className="text-lg font-bold text-gray-800">邀请成员</h3>
+              <button
+                onClick={() => setShowInviteModal(false)}
+                className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
+              >
+                <X size={18} className="text-gray-500" />
+              </button>
+            </div>
+
+            <div className="p-5 overflow-y-auto flex-1 space-y-4">
+              {/* 添加新成员 */}
+              <div>
+                <p className="text-sm font-medium text-gray-700 mb-2">添加同行者</p>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={inviteName}
+                    onChange={(e) => setInviteName(e.target.value)}
+                    placeholder="输入昵称"
+                    maxLength={12}
+                    className="flex-1 px-4 py-2.5 rounded-xl bg-gray-50 border border-gray-200 focus:border-primary-mid focus:ring-2 focus:ring-primary-mid/20 outline-none transition-all text-sm"
+                  />
+                  <button
+                    onClick={handleAddMember}
+                    disabled={!inviteName.trim()}
+                    className="px-4 py-2.5 rounded-xl bg-gradient-primary text-white text-sm font-medium disabled:opacity-50 hover:opacity-90 transition-all flex items-center gap-1"
+                  >
+                    <Plus size={16} />
+                    添加
+                  </button>
+                </div>
+              </div>
+
+              {/* 成员列表 */}
+              <div>
+                <p className="text-sm font-medium text-gray-700 mb-2">
+                  当前成员 ({tripCollaborators.length})
+                </p>
+                <div className="space-y-2">
+                  {tripCollaborators.map((member) => (
+                    <div
+                      key={member.id}
+                      className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl"
+                    >
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
+                        member.role === 'owner' ? 'bg-gradient-primary text-white' : 'bg-gray-200 text-gray-600'
+                      }`}>
+                        {member.avatar}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-gray-800 truncate">{member.nickname}</p>
+                        <p className="text-xs text-gray-500">{roleLabels[member.role] || '查看者'}</p>
+                      </div>
+                      {member.role !== 'owner' && (
+                        <button
+                          onClick={() => removeCollaborator(member.id)}
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                          aria-label="移除成员"
+                        >
+                          <X size={16} />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* 分享邀请链接 */}
+              <div className="pt-2 border-t border-gray-100">
+                <p className="text-sm text-gray-500 mb-3">
+                  或分享链接邀请好友加入：
+                </p>
+                <button
+                  onClick={handleCopyLink}
+                  className="w-full py-3 rounded-xl border border-dashed border-gray-300 text-gray-600 text-sm hover:border-primary-mid hover:text-primary-mid transition-colors flex items-center justify-center gap-2"
+                >
+                  {copied ? (
+                    <>
+                      <Check size={16} />
+                      链接已复制
+                    </>
+                  ) : (
+                    <>
+                      <LinkIcon size={16} />
+                      复制邀请链接
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 删除确认弹窗 */}
       {showDeleteConfirm && (

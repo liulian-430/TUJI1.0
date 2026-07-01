@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from
 import { useRef, useCallback, useEffect, useState } from 'react';
 import Header from './components/layout/Header';
 import BottomNav from './components/layout/BottomNav';
+import OfflineBanner from './components/ui/OfflineBanner';
 import Home from './pages/Home';
 import AIPlanner from './pages/AIPlanner';
 import NewTrip from './pages/NewTrip';
@@ -12,6 +13,7 @@ import TripDetail from './pages/TripDetail';
 import Budget from './pages/Budget';
 import Profile from './pages/Profile';
 import GuideDetail from './pages/GuideDetail';
+import Settings from './pages/Settings';
 
 const mainPages = ['/', '/ai-planner', '/map', '/profile'];
 
@@ -139,6 +141,7 @@ export default function App() {
       <SwipeContainer>
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50/30 to-pink-50/20">
           <Header />
+          <OfflineBanner />
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/ai-planner" element={<AIPlanner />} />
@@ -149,6 +152,7 @@ export default function App() {
             <Route path="/trip/:id" element={<TripDetail />} />
             <Route path="/budget/:tripId" element={<Budget />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/settings" element={<Settings />} />
             <Route path="/guide/:id" element={<GuideDetail />} />
           </Routes>
           <BottomNav />

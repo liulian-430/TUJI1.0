@@ -1,6 +1,7 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { Star, MapPin, Clock, Heart, Share2, Navigation, ChevronLeft, ChevronRight, Plus, X, Check, Route as RouteIcon } from 'lucide-react';
 import GlassCard from '../components/ui/GlassCard';
+import WeatherWidget from '../components/ui/WeatherWidget';
 import POICard from '../components/poi/POICard';
 import { mockPOIs } from '../data/mock';
 import type { TripPOI } from '../data/mock';
@@ -178,6 +179,12 @@ export default function POIDetail() {
             </button>
           </div>
         </GlassCard>
+
+        {/* Weather */}
+        <div className="mb-6">
+          <h2 className="font-bold text-gray-800 mb-3">当地天气</h2>
+          <WeatherWidget city={poi.city} compact />
+        </div>
 
         {/* Description */}
         <GlassCard className="p-6 mb-6">

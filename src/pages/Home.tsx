@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Search, MapPin, Clock, Heart, ChevronRight } from 'lucide-react';
 import GlassCard from '../components/ui/GlassCard';
 import Logo from '../components/ui/Logo';
+import WeatherWidget from '../components/ui/WeatherWidget';
 import { hotCities, mockPOIs, mockTrips, userGuides } from '../data/mock';
 
 export default function Home() {
@@ -55,6 +56,11 @@ export default function Home() {
             >
               搜索
             </button>
+          </div>
+
+          {/* Weather Widget */}
+          <div className="mb-6">
+            <WeatherWidget city="北京" compact />
           </div>
 
           {/* Hot Cities */}

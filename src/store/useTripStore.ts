@@ -46,6 +46,20 @@ export interface Budget {
   other: number;
 }
 
+export interface UserProfile {
+  nickname: string;
+  bio: string;
+  avatar: string;
+}
+
+export interface Collaborator {
+  id: string;
+  nickname: string;
+  avatar: string;
+  role: 'owner' | 'editor' | 'viewer';
+  tripId: string;
+}
+
 interface TripState {
   trips: Trip[];
   expenses: Expense[];
@@ -78,6 +92,12 @@ interface TripState {
   updateBudget: (tripId: string, budget: Budget) => void;
   toggleFavoritePOI: (poiId: string) => void;
   addVisitedCity: (city: string) => void;
+  userProfile: UserProfile;
+  updateUserProfile: (updates: Partial<UserProfile>) => void;
+  collaborators: Collaborator[];
+  addCollaborator: (collaborator: Omit<Collaborator, 'id'>) => void;
+  removeCollaborator: (collaboratorId: string) => void;
+  updateCollaboratorRole: (collaboratorId: string, role: Collaborator['role']) => void;
 }
 
 export const useTripStore = create<TripState>()(
@@ -156,6 +176,29 @@ export const useTripStore = create<TripState>()(
         visitedCities: state.visitedCities.includes(city)
           ? state.visitedCities
           : [...state.visitedCities, city],
+      })),
+      userProfile: {
+        nickname: '旅行爱好者',
+        bio: '世界那么大，一起去看看',
+        avatar: '旅',
+      },
+      updateUserProfile: (updates) => set((state) => ({
+        userProfile: { ...state.userProfile, ...updates },
+      })),
+      collaborators: [],
+      addCollaborator: (collaborator) => set((state) => ({
+        collaborators: [
+          { ...collaborator, id: `col-${Date.now()}` },
+          ...state.collaborators,
+        ],
+      })),
+      removeCollaborator: (collaboratorId) => set((state) => ({
+        collaborators: state.collaborators.filter((c) => c.id !== collaboratorId),
+      })),
+      updateCollaboratorRole: (collaboratorId, role) => set((state) => ({
+        collaborators: state.collaborators.map((c) =>
+          c.id === collaboratorId ? { ...c, role } : c
+        ),
       })),
     }),
     {

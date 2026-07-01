@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { MapPin, Calendar, ChevronRight, Camera, Heart, Star, MapPinned, History as HistoryIcon } from 'lucide-react';
+import { MapPin, Calendar, ChevronRight, Camera, Heart, Star, MapPinned, History as HistoryIcon, Settings as SettingsIcon } from 'lucide-react';
 import GlassCard from '../components/ui/GlassCard';
 import EmptyState from '../components/ui/EmptyState';
 import TripCard from '../components/trip/TripCard';
@@ -8,7 +8,7 @@ import { useNavigate } from 'react-router-dom';
 
 export default function Profile() {
   const navigate = useNavigate();
-  const { trips, favoritePOIs, visitedCities, completeTrip } = useTripStore();
+  const { trips, favoritePOIs, visitedCities, completeTrip, userProfile } = useTripStore();
   const [activeTab, setActiveTab] = useState<'current' | 'history'>('current');
 
   const currentTrips = trips.filter(t => t.status !== 'completed');
@@ -23,26 +23,51 @@ export default function Profile() {
     <div className="min-h-screen pb-24 md:pb-8 pt-20 md:pt-24 px-4 md:px-8">
       <div className="max-w-4xl mx-auto">
         {/* Profile Header */}
-        <GlassCard className="p-6 mb-6">
-          <div className="flex items-center gap-4">
-            <div className="relative">
-              <div className="w-20 h-20 rounded-full bg-gradient-primary flex items-center justify-center">
-                <span className="text-white text-2xl font-bold">旅</span>
-              </div>
-              <button className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-white shadow-lg flex items-center justify-center">
-                <Camera size={14} className="text-gray-600" />
+        <GlassCard className="p-6 mb-6 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-primary opacity-10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl" />
+          <div className="relative">
+            <div className="flex items-start justify-between mb-4">
+              <h1 className="text-lg font-bold text-gray-800">我的</h1>
+              <button
+                onClick={() => navigate('/settings')}
+                className="p-2 rounded-lg hover:bg-white/40 transition-colors"
+                aria-label="设置"
+              >
+                <SettingsIcon size={20} className="text-gray-500" />
               </button>
             </div>
-            <div className="flex-1">
-              <h2 className="text-xl font-bold text-gray-800">旅行爱好者</h2>
-              <p className="text-sm text-gray-500 mt-1">世界那么大，一起去看看</p>
-              <div className="flex gap-4 mt-2 text-sm text-gray-500">
-                <span><strong className="text-gray-700">{trips.length}</strong> 行程</span>
-                <span><strong className="text-gray-700">{favoritePOIs.length}</strong> 收藏</span>
-                <span><strong className="text-gray-700">{visitedCities.length}</strong> 足迹</span>
+            <button
+              onClick={() => navigate('/settings')}
+              className="flex items-center gap-4 w-full text-left"
+            >
+              <div className="relative">
+                <div className="w-20 h-20 rounded-full bg-gradient-primary flex items-center justify-center shadow-lg shadow-primary-mid/30">
+                  <span className="text-white text-2xl font-bold">{userProfile.avatar}</span>
+                </div>
+                <div className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-white shadow-lg flex items-center justify-center">
+                  <Camera size={14} className="text-gray-600" />
+                </div>
+              </div>
+              <div className="flex-1 min-w-0">
+                <h2 className="text-xl font-bold text-gray-800 truncate">{userProfile.nickname}</h2>
+                <p className="text-sm text-gray-500 mt-1 truncate">{userProfile.bio}</p>
+              </div>
+              <ChevronRight size={20} className="text-gray-400 flex-shrink-0" />
+            </button>
+            <div className="flex gap-4 mt-5 pt-4 border-t border-white/20">
+              <div className="flex-1 text-center">
+                <p className="text-xl font-bold text-gray-800">{trips.length}</p>
+                <p className="text-xs text-gray-500">行程</p>
+              </div>
+              <div className="flex-1 text-center">
+                <p className="text-xl font-bold text-gray-800">{favoritePOIs.length}</p>
+                <p className="text-xs text-gray-500">收藏</p>
+              </div>
+              <div className="flex-1 text-center">
+                <p className="text-xl font-bold text-gray-800">{visitedCities.length}</p>
+                <p className="text-xs text-gray-500">足迹</p>
               </div>
             </div>
-            <ChevronRight size={20} className="text-gray-400" />
           </div>
         </GlassCard>
 
