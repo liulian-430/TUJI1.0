@@ -19,6 +19,10 @@ interface DraggablePOIListProps {
   onReorder: (fromIndex: number, toIndex: number) => void;
 }
 
+// 丝滑弹性缓动曲线
+const SMOOTH_EASE = 'cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+const BOUNCE_EASE = 'cubic-bezier(0.34, 1.56, 0.64, 1)';
+
 export default function DraggablePOIList({
   pois,
   typeColors,
@@ -36,9 +40,10 @@ export default function DraggablePOIList({
   const [insertIndex, setInsertIndex] = useState<number | null>(null);
   const [dragPosition, setDragPosition] = useState({ x: 0, y: 0 });
   const [selectedTransportIndex, setSelectedTransportIndex] = useState<number | null>(null);
-  const [isLongPress, setIsLongPress] = useState(false);
   const [cardHeight, setCardHeight] = useState(120);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  // 拖拽预览淡入淡出
+  const [dragPreviewOpacity, setDragPreviewOpacity] = useState(0);
 
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -47,7 +52,6 @@ export default function DraggablePOIList({
   const draggingIndexRef = useRef<number | null>(null);
   const isDraggingRef = useRef(false);
   const startPosRef = useRef({ x: 0, y: 0 });
-  const pointerIdRef = useRef<number | null>(null);
 
   const updateInsertIndex = (clientY: number) => {
     if (!containerRef.current) return;
@@ -55,7 +59,6 @@ export default function DraggablePOIList({
     const containerRect = containerRef.current.getBoundingClientRect();
     const relativeY = clientY - containerRect.top;
 
-    let cumulativeHeight = 0;
     let newInsertIdx = 0;
 
     for (let i = 0; i < cardRefs.current.length; i++) {
@@ -65,7 +68,6 @@ export default function DraggablePOIList({
       const cardRect = cardEl.getBoundingClientRect();
       const cardTop = cardRect.top - containerRect.top;
       const cardBottom = cardTop + cardRect.height;
-
       const cardMid = (cardTop + cardBottom) / 2;
 
       if (relativeY < cardMid) {
@@ -94,16 +96,12 @@ export default function DraggablePOIList({
       y: e.clientY - cardRect.top,
     });
 
-    const currentCardHeight = cardRect.height;
-    setCardHeight(currentCardHeight);
+    setCardHeight(cardRect.height);
 
     startPosRef.current = { x: e.clientX, y: e.clientY };
-    pointerIdRef.current = e.pointerId;
     isDraggingRef.current = false;
-    setIsLongPress(false);
 
     longPressTimerRef.current = setTimeout(() => {
-      setIsLongPress(true);
       setDraggingIndex(idx);
       draggingIndexRef.current = idx;
       isDraggingRef.current = true;
@@ -116,7 +114,12 @@ export default function DraggablePOIList({
       }
       document.body.style.userSelect = 'none';
       document.body.style.cursor = 'grabbing';
-    }, 250);
+
+      // 淡入拖拽预览
+      requestAnimationFrame(() => {
+        setDragPreviewOpacity(1);
+      });
+    }, 200);
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
@@ -147,23 +150,28 @@ export default function DraggablePOIList({
     }
 
     isDraggingRef.current = false;
-    setIsLongPress(false);
     document.body.style.userSelect = '';
     document.body.style.cursor = '';
 
     const fromIdx = draggingIndexRef.current;
     const toIdx = insertIndexRef.current;
 
+    // 先淡出预览
+    setDragPreviewOpacity(0);
+
     if (fromIdx !== null && toIdx !== null && fromIdx !== toIdx) {
       const actualToIdx = toIdx > fromIdx ? toIdx - 1 : toIdx;
       onReorder(fromIdx, actualToIdx);
     }
 
-    setDraggingIndex(null);
-    draggingIndexRef.current = null;
-    setInsertIndex(null);
-    insertIndexRef.current = null;
-    setDragPosition({ x: 0, y: 0 });
+    // 延迟清理状态，让淡出动画完成
+    setTimeout(() => {
+      setDraggingIndex(null);
+      draggingIndexRef.current = null;
+      setInsertIndex(null);
+      insertIndexRef.current = null;
+      setDragPosition({ x: 0, y: 0 });
+    }, 200);
   };
 
   const handlePointerCancel = (e: React.PointerEvent) => {
@@ -175,15 +183,18 @@ export default function DraggablePOIList({
     if (!isDraggingRef.current) return;
 
     isDraggingRef.current = false;
-    setIsLongPress(false);
     document.body.style.userSelect = '';
     document.body.style.cursor = '';
 
-    setDraggingIndex(null);
-    draggingIndexRef.current = null;
-    setInsertIndex(null);
-    insertIndexRef.current = null;
-    setDragPosition({ x: 0, y: 0 });
+    setDragPreviewOpacity(0);
+
+    setTimeout(() => {
+      setDraggingIndex(null);
+      draggingIndexRef.current = null;
+      setInsertIndex(null);
+      insertIndexRef.current = null;
+      setDragPosition({ x: 0, y: 0 });
+    }, 200);
   };
 
   useEffect(() => {
@@ -209,7 +220,7 @@ export default function DraggablePOIList({
             <div className="flex flex-col items-center justify-center pt-1">
               <GripVertical
                 size={18}
-                className={`transition-colors ${isDragging ? 'text-primary-mid' : 'text-gray-300'}`}
+                className={`transition-colors duration-300 ${isDragging ? 'text-primary-mid' : 'text-gray-300'}`}
               />
             </div>
           )}
@@ -271,40 +282,47 @@ export default function DraggablePOIList({
         const showTransport = viewMode !== 'all' && index < pois.length - 1;
         const transportInfo = showTransport ? calculateTransport(poi, pois[index + 1]) : null;
         const isTransportExpanded = selectedTransportIndex === index;
-        const day = getDayForPoi(poi.id);
-        const isUnscheduled = !day;
 
         return (
           <div key={poi.id} className="relative">
-            {showInsertAbove && (
+            {/* 撑开占位 — 始终渲染，高度从0过渡到目标高度 */}
+            <div
+              className="overflow-hidden"
+              style={{
+                height: showInsertAbove ? `${cardHeight}px` : '0px',
+                marginBottom: showInsertAbove ? '16px' : '0px',
+                transition: `height 0.35s ${BOUNCE_EASE}, margin-bottom 0.35s ${BOUNCE_EASE}`,
+              }}
+            >
               <div
-                className="mb-4 rounded-2xl border-2 border-dashed border-primary-mid/60 bg-primary-mid/15 transition-all duration-300 ease-out"
-                style={{ height: cardHeight }}
+                className="rounded-2xl border-2 border-dashed border-primary-mid/50 bg-primary-mid/10 flex items-center justify-center"
+                style={{ height: `${cardHeight}px` }}
               >
-                <div className="w-full h-full flex items-center justify-center">
-                  <div className="text-primary-mid/60 text-sm font-medium">放到这里</div>
-                </div>
+                <div className="text-primary-mid/50 text-sm font-medium">放到这里</div>
               </div>
-            )}
+            </div>
 
             <div
               ref={(el) => {
                 cardRefs.current[index] = el;
               }}
-              className={`transition-all duration-300 ease-out ${
-                isDragging ? 'opacity-40 scale-[0.97]' : ''
-              } ${isLongPress && isDragging ? 'scale-[0.98]' : ''}`}
+              style={{
+                touchAction: 'none',
+                opacity: isDragging ? 0.35 : 1,
+                transform: isDragging ? 'scale(0.96)' : 'scale(1)',
+                transition: `opacity 0.25s ${SMOOTH_EASE}, transform 0.25s ${BOUNCE_EASE}`,
+                willChange: 'opacity, transform',
+              }}
               onPointerDown={(e) => handlePointerDown(e, index)}
               onPointerMove={handlePointerMove}
               onPointerUp={handlePointerUp}
               onPointerCancel={handlePointerCancel}
-              style={{ touchAction: 'none' }}
             >
               <SwipeableCard onDelete={() => onDelete(poi.id)}>
                 <div
                   className={`cursor-pointer transition-all duration-200 ${
                     isSelected ? 'ring-2 ring-primary-mid rounded-2xl' : ''
-                  } ${isUnscheduled ? '' : ''} ${viewMode !== 'all' ? 'active:scale-[0.98]' : ''}`}
+                  } ${viewMode !== 'all' ? 'active:scale-[0.98]' : ''}`}
                   onClick={() => onPoiClick(poi)}
                 >
                   {renderPOICard(poi, index)}
@@ -336,7 +354,7 @@ export default function DraggablePOIList({
                   </div>
                   <ArrowDown
                     size={14}
-                    className={`text-gray-400 transition-transform duration-200 ${
+                    className={`text-gray-400 transition-transform duration-300 ${SMOOTH_EASE} ${
                       isTransportExpanded ? 'rotate-180' : ''
                     }`}
                   />
@@ -368,17 +386,30 @@ export default function DraggablePOIList({
         );
       })}
 
-      {insertIndex === pois.length && draggingIndex !== null && draggingIndex !== pois.length && (
+      {/* 末尾撑开占位 */}
+      <div
+        className="overflow-hidden"
+        style={{
+          height:
+            insertIndex === pois.length && draggingIndex !== null && draggingIndex !== pois.length
+              ? `${cardHeight}px`
+              : '0px',
+          marginBottom:
+            insertIndex === pois.length && draggingIndex !== null && draggingIndex !== pois.length
+              ? '16px'
+              : '0px',
+          transition: `height 0.35s ${BOUNCE_EASE}, margin-bottom 0.35s ${BOUNCE_EASE}`,
+        }}
+      >
         <div
-          className="mb-4 rounded-2xl border-2 border-dashed border-primary-mid/60 bg-primary-mid/15 transition-all duration-300 ease-out"
-          style={{ height: cardHeight }}
+          className="rounded-2xl border-2 border-dashed border-primary-mid/50 bg-primary-mid/10 flex items-center justify-center"
+          style={{ height: `${cardHeight}px` }}
         >
-          <div className="w-full h-full flex items-center justify-center">
-            <div className="text-primary-mid/60 text-sm font-medium">放到这里</div>
-          </div>
+          <div className="text-primary-mid/50 text-sm font-medium">放到这里</div>
         </div>
-      )}
+      </div>
 
+      {/* 拖拽跟随卡片 — 无 transition 完全跟手，仅 opacity 有淡入淡出 */}
       {draggingIndex !== null && pois[draggingIndex] && (
         <div
           className="fixed z-[9999] pointer-events-none"
@@ -386,8 +417,10 @@ export default function DraggablePOIList({
             left: dragPosition.x - dragOffset.x,
             top: dragPosition.y - dragOffset.y,
             width: cardRefs.current[draggingIndex]?.offsetWidth || 320,
-            transform: 'rotate(3deg) scale(1.03)',
-            transition: 'transform 0.15s ease-out',
+            transform: 'translate3d(0, 0, 0) rotate(2deg) scale(1.04)',
+            opacity: dragPreviewOpacity,
+            transition: `opacity 0.2s ${SMOOTH_EASE}`,
+            willChange: 'transform, opacity',
           }}
         >
           {renderPOICard(pois[draggingIndex], draggingIndex, true)}
