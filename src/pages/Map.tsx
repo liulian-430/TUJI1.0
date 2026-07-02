@@ -143,7 +143,7 @@ function MapController({
 export default function Map() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { trips, addPOIToTrip, removePOIFromTrip, movePOIToDay, addDayToTrip, removeDayFromTrip } = useTripStore();
+  const { trips, addPOIToTrip, removePOIFromTrip, movePOIToDay, addDayToTrip, removeDayFromTrip, setCurrentTrip } = useTripStore();
   const { showToast } = useToastStore();
 
   const [selectedTripId, setSelectedTripId] = useState<string>('');
