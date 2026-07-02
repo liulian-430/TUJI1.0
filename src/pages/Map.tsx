@@ -68,24 +68,28 @@ const createPoiIcon = (type: string, selected: boolean) => {
   });
 };
 
+// 国内可用的地图瓦片源
 const layerOptions = [
   {
     id: 'standard',
     name: '标准地图',
-    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-    attribution: '&copy; OpenStreetMap contributors',
+    url: 'https://webrd{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}',
+    attribution: '&copy; 高德地图',
+    subdomains: ['01', '02', '03', '04'],
   },
   {
     id: 'satellite',
     name: '卫星影像',
-    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-    attribution: 'Tiles &copy; Esri',
+    url: 'https://webst{s}.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}',
+    attribution: '&copy; 高德地图',
+    subdomains: ['01', '02', '03', '04'],
   },
   {
     id: 'light',
     name: '简约浅色',
-    url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-    attribution: '&copy; CARTO',
+    url: 'https://geo.datav.aliyun.com/geemap/v2/attribution/{z}/{x}/{y}.png',
+    attribution: '&copy; DataV.GeoAtlas',
+    subdomains: [],
   },
 ];
 
@@ -368,6 +372,7 @@ export default function Map() {
           <TileLayer
             attribution={layerOptions.find((l) => l.id === activeLayer)?.attribution}
             url={layerOptions.find((l) => l.id === activeLayer)?.url || layerOptions[0].url}
+            subdomains={layerOptions.find((l) => l.id === activeLayer)?.subdomains || []}
           />
           {markerData.map(({ poi, position, day }) => (
             <Marker
