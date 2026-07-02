@@ -5,21 +5,28 @@ import WeatherWidget from '../components/ui/WeatherWidget';
 import POICard from '../components/poi/POICard';
 import { mockPOIs } from '../data/mock';
 import type { TripPOI } from '../data/mock';
-import { useState } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useTripStore } from '@/store/useTripStore';
+import { useToastStore } from '@/store/useToastStore';
+import { useEscKey } from '@/hooks/useEscKey';
 
 export default function POIDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [currentImage, setCurrentImage] = useState(0);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [addedTripId, setAddedTripId] = useState<string | null>(null);
 
   const { favoritePOIs, toggleFavoritePOI, trips, addPOIToTrip } = useTripStore();
+  const { showToast } = useToastStore();
 
   const poi = mockPOIs.find((p) => p.id === id) || mockPOIs[0];
   const relatedPOIs = mockPOIs.filter((p) => p.id !== poi.id).slice(0, 3);
   const isFavorited = favoritePOIs.includes(poi.id);
+
+  const currentTrip = useMemo(() => {
+    const planning = trips.filter((t) => t.status !== 'completed');
+    return planning.length > 0 ? planning[0] : null;
+  }, [trips]);
 
   const typeMap: Record<string, { label: string; color: string }> = {
     scenic: { label: '景点', color: 'bg-green-500/20 text-green-600' },
@@ -35,8 +42,18 @@ export default function POIDetail() {
     window.open(url, '_blank');
   };
 
-  // 添加到指定行程
-  const handleAddToTrip = (tripId: string) => {
+  // 打开添加弹窗
+  const handleAddClick = () => {
+    if (!currentTrip) {
+      showToast('请先创建一个行程', 'info');
+      return;
+    }
+    setShowAddModal(true);
+  };
+
+  // 确认添加到行程
+  const handleConfirmAdd = () => {
+    if (!currentTrip) return;
     const newPoi: TripPOI = {
       id: `${poi.id}-${Date.now()}`,
       name: poi.name,
@@ -47,15 +64,13 @@ export default function POIDetail() {
       latitude: poi.latitude,
       longitude: poi.longitude,
     };
-    addPOIToTrip(tripId, newPoi);
-    setAddedTripId(tripId);
-    // 1.2s 后关闭弹窗并跳转到行程地图
-    setTimeout(() => {
-      setShowAddModal(false);
-      setAddedTripId(null);
-      navigate(`/map?trip=${tripId}`);
-    }, 1200);
+    addPOIToTrip(currentTrip.id, newPoi);
+    setShowAddModal(false);
+    showToast('已添加到行程', 'success');
   };
+
+  const closeAddModal = useCallback(() => setShowAddModal(false), []);
+  useEscKey(closeAddModal, showAddModal);
 
   return (
     <div className="min-h-screen pb-24 md:pb-8 pt-20 md:pt-8">
@@ -215,7 +230,7 @@ export default function POIDetail() {
           <span className="text-xs">{isFavorited ? '已收藏' : '收藏'}</span>
         </button>
         <button
-          onClick={() => setShowAddModal(true)}
+          onClick={handleAddClick}
           className="flex-1 gradient-button flex items-center justify-center gap-2"
         >
           <Plus size={18} />
@@ -224,87 +239,56 @@ export default function POIDetail() {
       </div>
 
       {/* 添加到行程弹窗 */}
-      {showAddModal && (
+      {showAddModal && currentTrip && (
         <div
-          className="fixed inset-0 z-[100] flex items-end md:items-center justify-center bg-black/40 backdrop-blur-sm p-4"
-          onClick={() => !addedTripId && setShowAddModal(false)}
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+          onClick={() => setShowAddModal(false)}
         >
           <div
-            className="w-full max-w-md bg-white rounded-3xl shadow-2xl animate-bounce-in max-h-[80vh] overflow-hidden flex flex-col"
+            className="w-full max-w-sm bg-white rounded-3xl shadow-2xl animate-bounce-in p-6"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between p-5 border-b border-gray-100">
+            <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold text-gray-800">添加到行程</h3>
-              {!addedTripId && (
-                <button
-                  onClick={() => setShowAddModal(false)}
-                  className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
-                >
-                  <X size={18} className="text-gray-500" />
-                </button>
-              )}
+              <button
+                onClick={() => setShowAddModal(false)}
+                className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
+              >
+                <X size={18} className="text-gray-500" />
+              </button>
             </div>
 
-            <div className="p-5 overflow-y-auto flex-1">
-              {trips.length === 0 ? (
-                <div className="text-center py-8">
-                  <RouteIcon size={40} className="mx-auto text-gray-300 mb-3" />
-                  <p className="text-gray-500 mb-4">还没有行程</p>
-                  <button
-                    onClick={() => navigate('/ai-planner')}
-                    className="gradient-button text-sm px-6 py-2"
-                  >
-                    去创建行程
-                  </button>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {trips.map((trip) => (
-                    <button
-                      key={trip.id}
-                      onClick={() => handleAddToTrip(trip.id)}
-                      disabled={!!addedTripId}
-                      className={`w-full p-4 rounded-xl border text-left transition-all flex items-center gap-3 ${
-                        addedTripId === trip.id
-                          ? 'border-green-400 bg-green-50'
-                          : 'border-gray-200 hover:border-primary-mid/50 hover:bg-primary-mid/5'
-                      } disabled:cursor-not-allowed`}
-                    >
-                      <div className="w-10 h-10 rounded-lg bg-gradient-primary flex items-center justify-center flex-shrink-0">
-                        <MapPin size={18} className="text-white" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-gray-800 truncate">{trip.name}</p>
-                        <p className="text-xs text-gray-500 mt-0.5">
-                          {trip.destination} · {trip.days}天 · {trip.pois?.length || 0}个景点
-                        </p>
-                      </div>
-                      {addedTripId === trip.id ? (
-                        <Check size={20} className="text-green-500 flex-shrink-0" />
-                      ) : (
-                        <Plus size={18} className="text-primary-mid flex-shrink-0" />
-                      )}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+            <p className="text-gray-600 mb-4">
+              将「{poi.name}」添加到：
+            </p>
 
-            {trips.length > 0 && (
-              <div className="p-4 border-t border-gray-100">
-                <button
-                  onClick={() => {
-                    setShowAddModal(false);
-                    navigate('/ai-planner');
-                  }}
-                  disabled={!!addedTripId}
-                  className="w-full py-2.5 rounded-xl border border-dashed border-gray-300 text-gray-500 text-sm hover:border-primary-mid/50 hover:text-primary-mid transition-colors flex items-center justify-center gap-1 disabled:opacity-50"
-                >
-                  <Plus size={16} />
-                  创建新行程
-                </button>
+            <div className="flex items-center gap-3 p-4 rounded-xl bg-primary-mid/5 mb-6">
+              <img
+                src={currentTrip.coverImage}
+                alt={currentTrip.name}
+                className="w-14 h-14 rounded-xl object-cover flex-shrink-0"
+              />
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-gray-800 truncate">{currentTrip.name}</p>
+                <p className="text-sm text-gray-500">{currentTrip.destination} · {currentTrip.days}天 · {currentTrip.pois?.length || 0}个景点</p>
               </div>
-            )}
+              <MapPin size={18} className="text-primary-mid flex-shrink-0" />
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowAddModal(false)}
+                className="flex-1 py-3 rounded-xl bg-gray-100 text-gray-600 font-medium hover:bg-gray-200 transition-colors"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleConfirmAdd}
+                className="flex-1 py-3 rounded-xl bg-gradient-primary text-white font-medium shadow-lg hover:shadow-xl transition-all"
+              >
+                确认添加
+              </button>
+            </div>
           </div>
         </div>
       )}

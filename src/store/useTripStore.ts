@@ -17,7 +17,7 @@ export interface Trip {
   nights?: number;
   people?: number;
   startDate: string;
-  status: 'planning' | 'in_progress' | 'ongoing' | 'completed';
+  status: 'planning' | 'in_progress' | 'completed';
   coverImage?: string;
   createdAt?: string;
   budget?: number;
@@ -176,7 +176,7 @@ export const useTripStore = create<TripState>()(
           if (t.id !== tripId) return t;
           const poi = t.pois.find((p) => p.id === poiId);
           if (!poi) return t;
-          let newDaysList: DayScheduleSimple[] = (t.daysList || []).map((d) => ({
+          const newDaysList: DayScheduleSimple[] = (t.daysList || []).map((d) => ({
             day: d.day,
             morning: (d.morning || []).filter((p) => p.id !== poiId),
             afternoon: (d.afternoon || []).filter((p) => p.id !== poiId),
@@ -192,9 +192,6 @@ export const useTripStore = create<TripState>()(
             newDaysList.push({ day: targetDay, afternoon: [poi] });
             newDaysList.sort((a, b) => a.day - b.day);
           }
-          newDaysList = newDaysList.filter(
-            (d) => (d.morning?.length || 0) + (d.afternoon?.length || 0) + (d.evening?.length || 0) > 0
-          );
           const maxDay = newDaysList.length > 0 ? Math.max(...newDaysList.map((d) => d.day)) : t.days;
           return {
             ...t,

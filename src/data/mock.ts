@@ -21,7 +21,7 @@ export interface Trip {
   nights: number;
   people: number;
   startDate: string;
-  status: 'planning' | 'ongoing' | 'completed';
+  status: 'planning' | 'in_progress' | 'completed';
   coverImage: string;
   createdAt: string;
 }
