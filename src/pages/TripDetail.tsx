@@ -8,6 +8,7 @@ import { useTripStore } from '@/store/useTripStore';
 import type { DayScheduleSimple } from '@/store/useTripStore';
 import type { TripPOI } from '../data/mock';
 import { DEFAULT_BUDGET } from '@/config/constants';
+import { useToastStore } from '@/store/useToastStore';
 
 // 时段配置
 const slotConfig = [
@@ -34,7 +35,8 @@ const typeLabels: Record<string, string> = {
 export default function TripDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { trips, expenses, removeTrip, completeTrip, collaborators, addCollaborator, removeCollaborator, userProfile } = useTripStore();
+  const { trips, expenses, removeTrip, completeTrip, collaborators, addCollaborator, removeCollaborator, userProfile, removePOIFromTrip } = useTripStore();
+  const { showToast } = useToastStore();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
@@ -413,8 +415,18 @@ export default function TripDetail() {
                               {slotPois.map((poi) => (
                                 <div
                                   key={poi.id}
-                                  className="relative bg-white/5 rounded-xl p-4 border border-white/10 hover:border-primary-mid/30 transition-colors"
+                                  className="relative bg-white/5 rounded-xl p-4 border border-white/10 hover:border-primary-mid/30 transition-colors group"
                                 >
+                                  <button
+                                    onClick={() => {
+                                      removePOIFromTrip(trip.id, poi.id);
+                                      showToast('已删除景点', 'success');
+                                    }}
+                                    className="absolute top-2 right-2 p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100"
+                                    aria-label="删除景点"
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
                                   <div className="flex items-start gap-3">
                                     <img
                                       src={poi.image}

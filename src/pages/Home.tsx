@@ -1,16 +1,48 @@
-import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, MapPin, Clock, Heart, ChevronRight } from 'lucide-react';
+import { Search, MapPin, Clock, Heart, ChevronRight, Plus } from 'lucide-react';
 import GlassCard from '../components/ui/GlassCard';
 import Logo from '../components/ui/Logo';
 import WeatherWidget from '../components/ui/WeatherWidget';
 import { hotCities, mockPOIs, mockTrips, userGuides } from '../data/mock';
+import { useTripStore } from '@/store/useTripStore';
+import { useToastStore } from '@/store/useToastStore';
+import type { TripPOI } from '../data/mock';
 
 export default function Home() {
   const navigate = useNavigate();
-  const [searchQuery, setSearchQuery] = useState('');
+  const { favoritePOIs, toggleFavoritePOI, trips, currentTripId, addPOIToTrip } = useTripStore();
+  const { showToast } = useToastStore();
 
   const hotPois = mockPOIs.filter(p => p.type === 'scenic').slice(0, 6);
+
+  const currentTrip = trips.find((t) => t.id === currentTripId) || trips.filter((t) => t.status !== 'completed')[0];
+
+  const handleFavorite = (e: React.MouseEvent, poiId: string) => {
+    e.stopPropagation();
+    toggleFavoritePOI(poiId);
+    const isFav = favoritePOIs.includes(poiId);
+    showToast(isFav ? '已取消收藏' : '已收藏', 'success');
+  };
+
+  const handleAddToTrip = (e: React.MouseEvent, poi: typeof mockPOIs[0]) => {
+    e.stopPropagation();
+    if (!currentTrip) {
+      showToast('请先创建一个行程', 'info');
+      return;
+    }
+    const newPoi: TripPOI = {
+      id: `${poi.id}-${Date.now()}`,
+      name: poi.name,
+      type: poi.type,
+      duration: '2小时',
+      price: poi.price,
+      image: poi.images[0] || '',
+      latitude: poi.latitude,
+      longitude: poi.longitude,
+    };
+    addPOIToTrip(currentTrip.id, newPoi);
+    showToast('已添加到行程', 'success');
+  };
 
   return (
     <div className="min-h-screen pb-24 md:pb-8">
@@ -35,22 +67,13 @@ export default function Home() {
             onClick={() => navigate('/search')}
           >
             <Search size={20} className="text-gray-400/70" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && searchQuery.trim()) {
-                  navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
-                }
-              }}
-              placeholder="搜索景点、美食、酒店..."
-              className="flex-1 bg-transparent outline-none text-gray-700 placeholder-gray-400/60 text-base pointer-events-none"
-            />
+            <span className="flex-1 text-gray-400/60 text-base">
+              搜索景点、美食、酒店...
+            </span>
             <button 
               onClick={(e) => {
                 e.stopPropagation();
-                navigate(searchQuery.trim() ? `/search?q=${encodeURIComponent(searchQuery.trim())}` : '/search');
+                navigate('/search');
               }}
               className="px-4 py-2 bg-gradient-primary rounded-xl text-white text-sm font-medium shadow-lg shadow-primary-mid/30"
             >
@@ -93,36 +116,57 @@ export default function Home() {
           <div className="mb-10">
             <h2 className="text-lg font-semibold text-gray-800/80 mb-5">热门景点</h2>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-              {hotPois.map((poi) => (
-                <GlassCard
-                  key={poi.id}
-                  className="overflow-hidden cursor-pointer p-0"
-                  onClick={() => navigate(`/poi/${poi.id}`)}
-                >
-                  <div className="relative h-32">
-                    <img
-                      src={poi.images[0]}
-                      alt={poi.name}
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-                    <div className="absolute bottom-2 left-2 right-2">
-                      <span className="text-white text-sm font-medium truncate block">{poi.name}</span>
+              {hotPois.map((poi) => {
+                const isFavorited = favoritePOIs.includes(poi.id);
+                return (
+                  <GlassCard
+                    key={poi.id}
+                    className="overflow-hidden cursor-pointer p-0"
+                    onClick={() => navigate(`/poi/${poi.id}`)}
+                  >
+                    <div className="relative h-32">
+                      <img
+                        src={poi.images[0]}
+                        alt={poi.name}
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                      <div className="absolute top-2 right-2 flex gap-1">
+                        <button
+                          onClick={(e) => handleFavorite(e, poi.id)}
+                          className={`p-1.5 rounded-full backdrop-blur-sm transition-all ${
+                            isFavorited ? 'bg-favorite text-white' : 'bg-white/50 text-gray-600 hover:bg-white/70'
+                          }`}
+                          aria-label={isFavorited ? '取消收藏' : '收藏'}
+                        >
+                          <Heart size={14} className={isFavorited ? 'fill-current' : ''} />
+                        </button>
+                        <button
+                          onClick={(e) => handleAddToTrip(e, poi)}
+                          className="p-1.5 rounded-full bg-gradient-primary text-white shadow-md hover:shadow-lg transition-all"
+                          aria-label="添加到行程"
+                        >
+                          <Plus size={14} />
+                        </button>
+                      </div>
+                      <div className="absolute bottom-2 left-2 right-2">
+                        <span className="text-white text-sm font-medium truncate block">{poi.name}</span>
+                      </div>
                     </div>
-                  </div>
-                  <div className="p-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-gray-500/80">{poi.city}</span>
-                      <span className="text-xs text-yellow-500/80">★ {poi.rating}</span>
+                    <div className="p-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-gray-500/80">{poi.city}</span>
+                        <span className="text-xs text-yellow-500/80">★ {poi.rating}</span>
+                      </div>
+                      {poi.price > 0 && (
+                        <span className="text-sm text-primary-mid/80 font-medium mt-1 block">
+                          ¥{poi.price}
+                        </span>
+                      )}
                     </div>
-                    {poi.price > 0 && (
-                      <span className="text-sm text-primary-mid/80 font-medium mt-1 block">
-                        ¥{poi.price}
-                      </span>
-                    )}
-                  </div>
-                </GlassCard>
-              ))}
+                  </GlassCard>
+                );
+              })}
             </div>
           </div>
 

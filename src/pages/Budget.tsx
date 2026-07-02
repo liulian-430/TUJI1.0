@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, Plus, AlertTriangle, X, Receipt } from 'lucide-react';
+import { ChevronLeft, Plus, AlertTriangle, X, Receipt, Filter } from 'lucide-react';
 import GlassCard from '../components/ui/GlassCard';
 import { EmptyStateCompact } from '../components/ui/EmptyState';
 import { useTripStore, type Expense } from '@/store/useTripStore';
@@ -13,6 +13,7 @@ export default function Budget() {
   const { trips, expenses, addExpense, removeExpense, budgets, updateBudget } = useTripStore();
   const { showToast } = useToastStore();
   const [showAddModal, setShowAddModal] = useState(false);
+  const [filterCategory, setFilterCategory] = useState<Expense['category'] | 'all'>('all');
   const [newExpense, setNewExpense] = useState({
     category: 'food' as Expense['category'],
     amount: '',
@@ -45,6 +46,11 @@ export default function Budget() {
     shopping: { label: '购物', color: 'bg-pink-500', textColor: 'text-pink-500' },
     other: { label: '其他', color: 'bg-gray-500', textColor: 'text-gray-500' },
   };
+
+  // 筛选后的消费记录
+  const filteredExpenses = filterCategory === 'all'
+    ? tripExpenses
+    : tripExpenses.filter((e) => e.category === filterCategory);
 
   const categoryBudgets = (['transportation', 'accommodation', 'food', 'ticket', 'shopping', 'other'] as const).map((key) => ({
     key,
@@ -199,9 +205,36 @@ export default function Budget() {
             </button>
           </div>
 
+          {/* Category Filter */}
+          <div className="flex gap-2 mb-4 overflow-x-auto pb-2 scrollbar-hide">
+            <button
+              onClick={() => setFilterCategory('all')}
+              className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
+                filterCategory === 'all'
+                  ? 'bg-gradient-primary text-white shadow-md'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              全部
+            </button>
+            {(Object.keys(categoryMap) as Expense['category'][]).map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setFilterCategory(cat)}
+                className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
+                  filterCategory === cat
+                    ? `${categoryMap[cat].color} text-white shadow-md`
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {categoryMap[cat].label}
+              </button>
+            ))}
+          </div>
+
           <div className="space-y-3">
-            {tripExpenses.length > 0 ? (
-              tripExpenses.map((expense) => (
+            {filteredExpenses.length > 0 ? (
+              filteredExpenses.map((expense) => (
                 <GlassCard key={expense.id} className="p-4 flex items-center gap-4">
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${categoryMap[expense.category].color}/10`}>
                     <span className={`text-sm font-bold ${categoryMap[expense.category].textColor}`}>
@@ -229,7 +262,7 @@ export default function Budget() {
               <GlassCard className="p-4">
                 <EmptyStateCompact
                   icon={Receipt}
-                  title="暂无消费记录"
+                  title={filterCategory === 'all' ? '暂无消费记录' : `暂无${categoryMap[filterCategory as Expense['category']].label}消费`}
                   description='点击右上角"记一笔"开始记录'
                 />
               </GlassCard>
