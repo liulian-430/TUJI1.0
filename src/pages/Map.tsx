@@ -12,6 +12,7 @@ import { useTripStore } from '@/store/useTripStore';
 import { useToastStore } from '@/store/useToastStore';
 import { useEscKey } from '@/hooks/useEscKey';
 import { calculateTransport, formatDuration, formatDistance } from '@/utils/transport';
+import DraggablePOIList from '@/components/poi/DraggablePOIList';
 
 // POI 类型对应的圆点颜色（用于地图 Marker）
 const poiTypeColors: Record<string, string> = {
@@ -161,13 +162,7 @@ export default function Map() {
   const [movingPoiId, setMovingPoiId] = useState<string | null>(null);
   const [dayToDelete, setDayToDelete] = useState<number | null>(null);
   const [showTripSelector, setShowTripSelector] = useState(false);
-  const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
-  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [selectedTransportIndex, setSelectedTransportIndex] = useState<number | null>(null);
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const dragOverIndexRef = useRef<number | null>(null);
-  const dragStartYRef = useRef<number>(0);
   const mapRef = useRef<L.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const paramsHandledRef = useRef(false);
@@ -768,205 +763,25 @@ export default function Map() {
               长按卡片拖动可调整顺序，地图将自动更新路线
             </p>
           )}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {displayedPois.map((poi, index) => {
-              const isSelected = selectedPoi === poi.id;
-              const dayColorIndex = index % dayButtonColors.length;
-              const day = getDayForPoi(poi.id);
-              const isUnscheduled = !day;
-              const isDragging = draggingIndex === index;
-              const isDragOver = dragOverIndex === index && draggingIndex !== null && draggingIndex !== index;
-              const showTransport = viewMode !== 'all' && index < displayedPois.length - 1;
-              const transportInfo = showTransport ? calculateTransport(poi, displayedPois[index + 1]) : null;
-              const isTransportExpanded = selectedTransportIndex === index;
 
-              const handleDragStart = (e: React.MouseEvent | React.TouchEvent, idx: number) => {
-                if (viewMode === 'all') return;
-                e.preventDefault();
-                e.stopPropagation();
-                const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
-                dragStartYRef.current = clientY;
-                setDraggingIndex(idx);
-                setDragOverIndex(idx);
-                dragOverIndexRef.current = idx;
-                setIsDragging(true);
-
-                const onMove = (ev: MouseEvent | TouchEvent) => {
-                  ev.preventDefault();
-                  const y = 'touches' in ev ? ev.touches[0].clientY : ev.clientY;
-                  const deltaY = y - dragStartYRef.current;
-                  const cardHeight = 120;
-                  const moveSteps = Math.round(deltaY / cardHeight);
-                  const newIndex = Math.max(0, Math.min(displayedPois.length - 1, idx + moveSteps));
-                  if (newIndex !== dragOverIndexRef.current) {
-                    dragOverIndexRef.current = newIndex;
-                    setDragOverIndex(newIndex);
-                  }
-                };
-
-                const onEnd = () => {
-                  document.removeEventListener('mousemove', onMove);
-                  document.removeEventListener('touchmove', onMove);
-                  document.removeEventListener('mouseup', onEnd);
-                  document.removeEventListener('touchend', onEnd);
-
-                  const fromIdx = idx;
-                  const toIdx = dragOverIndexRef.current;
-                  if (toIdx !== null && toIdx !== fromIdx && typeof viewMode === 'number') {
-                    reorderPoisInDay(selectedTrip?.id || '', viewMode, fromIdx, toIdx);
-                    showToast('行程顺序已更新', 'success');
-                  }
-                  setDraggingIndex(null);
-                  setDragOverIndex(null);
-                  dragOverIndexRef.current = null;
-                  setIsDragging(false);
-                };
-
-                // 延迟200ms才真正开始拖拽，避免误触
-                const timer = setTimeout(() => {
-                  document.addEventListener('mousemove', onMove);
-                  document.addEventListener('touchmove', onMove, { passive: false });
-                  document.addEventListener('mouseup', onEnd);
-                  document.addEventListener('touchend', onEnd);
-                }, 200);
-
-                // 如果提前松手，取消延迟
-                const cancelTimer = () => {
-                  clearTimeout(timer);
-                  document.removeEventListener('mouseup', cancelTimer);
-                  document.removeEventListener('touchend', cancelTimer);
-                };
-                document.addEventListener('mouseup', cancelTimer);
-                document.addEventListener('touchend', cancelTimer);
-              };
-
-              return (
-                <div key={poi.id} className="relative">
-                  <div
-                    className={`transition-all duration-300 ease-out ${
-                      isDragging ? 'opacity-60 scale-105 z-20 rotate-1 shadow-xl' : ''
-                    } ${isDragOver && draggingIndex !== null && draggingIndex !== index ? 'ring-2 ring-primary-mid/50' : ''}`}
-                    onMouseDown={(e) => handleDragStart(e, index)}
-                    onTouchStart={(e) => handleDragStart(e, index)}
-                    style={{ touchAction: 'none' }}
-                  >
-                    <SwipeableCard key={poi.id} onDelete={() => handleDeletePoi(poi.id)}>
-                      <GlassCard
-                        className={`overflow-hidden cursor-pointer transition-all duration-200 ${
-                          isSelected ? 'ring-2 ring-primary-mid' : ''
-                        } ${isUnscheduled ? 'border-l-4 border-l-amber-400' : ''} ${
-                          viewMode !== 'all' ? 'active:scale-[0.98]' : ''
-                        }`}
-                        onClick={() => handlePoiClick(poi)}
-                      >
-                        <div className="flex items-start gap-3 p-4">
-                          {viewMode !== 'all' && (
-                            <div className="flex flex-col items-center justify-center pt-1">
-                              <GripVertical size={18} className="text-gray-300 cursor-grab active:cursor-grabbing transition-colors hover:text-gray-400" />
-                            </div>
-                          )}
-                          <div
-                            className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold shadow-md flex-shrink-0 bg-gradient-to-br transition-transform duration-200 ${
-                              isUnscheduled
-                                ? 'from-amber-400 to-orange-500'
-                                : dayButtonColors[dayColorIndex]
-                            }`}
-                          >
-                            {isUnscheduled ? '?' : index + 1}
-                          </div>
-
-                          <img
-                            src={poi.image}
-                            alt={poi.name}
-                            className={`w-20 h-20 rounded-lg object-cover flex-shrink-0 transition-opacity ${isUnscheduled ? 'opacity-80' : ''}`}
-                          />
-
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className={`text-xs px-2 py-0.5 rounded border ${typeColors[poi.type]}`}>
-                                {typeLabels[poi.type]}
-                              </span>
-                              {isUnscheduled && (
-                                <span className="text-xs px-2 py-0.5 rounded bg-amber-100 text-amber-700 border border-amber-200 font-medium">
-                                  待安排
-                                </span>
-                              )}
-                              {poi.duration && (
-                                <span className="text-xs text-gray-500">{poi.duration}</span>
-                              )}
-                            </div>
-                            <h4 className="font-medium text-gray-800 truncate">{poi.name}</h4>
-                            {poi.price > 0 && (
-                              <p className="text-sm text-primary-mid mt-1">¥{poi.price}</p>
-                            )}
-                          </div>
-
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleOpenMoveDay(poi.id);
-                            }}
-                            className={`flex items-center gap-1 text-xs hover:text-primary-mid transition-colors px-2 py-1 rounded-lg hover:bg-primary-mid/10 ${
-                              isUnscheduled ? 'text-amber-600 bg-amber-50' : 'text-gray-500'
-                            }`}
-                          >
-                            <span className="font-medium">{day ? `Day${day}` : '去安排'}</span>
-                            <Edit3 size={12} className={isUnscheduled ? 'text-amber-500' : 'text-gray-400'} />
-                          </button>
-                        </div>
-                      </GlassCard>
-                    </SwipeableCard>
-                  </div>
-
-                  {showTransport && transportInfo && (
-                    <div
-                      className={`mx-4 my-2 transition-all duration-300 ease-out cursor-pointer ${
-                        isTransportExpanded ? '' : 'hover:bg-white/30'
-                      }`}
-                      onClick={() => setSelectedTransportIndex(isTransportExpanded ? null : index)}
-                    >
-                      <div className="flex items-center gap-3 py-2 px-3 rounded-xl bg-white/50 backdrop-blur-sm border border-white/60">
-                        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary-mid/10">
-                          <Bus size={16} className="text-primary-mid" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium text-gray-700">
-                              {formatDistance(transportInfo.distance)}
-                            </span>
-                            <span className="text-xs text-gray-400">·</span>
-                            <span className="text-sm text-gray-600">
-                              公交约{formatDuration(transportInfo.transitDuration)}
-                            </span>
-                          </div>
-                        </div>
-                        <ArrowDown size={14} className={`text-gray-400 transition-transform duration-200 ${isTransportExpanded ? 'rotate-180' : ''}`} />
-                      </div>
-                      {isTransportExpanded && (
-                        <div className="mt-2 grid grid-cols-3 gap-2 animate-slide-down">
-                          <div className="p-3 rounded-xl bg-green-50 border border-green-200 text-center">
-                            <Bus size={18} className="mx-auto mb-1 text-green-600" />
-                            <p className="text-xs font-medium text-green-700">公交</p>
-                            <p className="text-xs text-green-600">{formatDuration(transportInfo.transitDuration)}</p>
-                          </div>
-                          <div className="p-3 rounded-xl bg-blue-50 border border-blue-200 text-center">
-                            <TrainFront size={18} className="mx-auto mb-1 text-blue-600" />
-                            <p className="text-xs font-medium text-blue-700">地铁</p>
-                            <p className="text-xs text-blue-600">{formatDuration(Math.ceil(transportInfo.transitDuration * 0.8))}</p>
-                          </div>
-                          <div className="p-3 rounded-xl bg-orange-50 border border-orange-200 text-center">
-                            <Car size={18} className="mx-auto mb-1 text-orange-600" />
-                            <p className="text-xs font-medium text-orange-700">打车</p>
-                            <p className="text-xs text-orange-600">¥{transportInfo.taxiCost}</p>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+          <DraggablePOIList
+            pois={displayedPois}
+            typeColors={typeColors}
+            typeLabels={typeLabels}
+            dayButtonColors={dayButtonColors}
+            viewMode={viewMode}
+            selectedPoi={selectedPoi}
+            onPoiClick={handlePoiClick}
+            onDelete={handleDeletePoi}
+            onMoveDay={handleOpenMoveDay}
+            getDayForPoi={getDayForPoi}
+            onReorder={(fromIdx, toIdx) => {
+              if (typeof viewMode === 'number') {
+                reorderPoisInDay(selectedTrip?.id || '', viewMode, fromIdx, toIdx);
+                showToast('行程顺序已更新', 'success');
+              }
+            }}
+          />
 
           {displayedPois.length === 0 && (
             <div className="text-center py-12">
