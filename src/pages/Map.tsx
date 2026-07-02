@@ -207,13 +207,9 @@ export default function Map() {
     return planningTrips.find((t) => t.id === selectedTripId) || planningTrips[0];
   }, [planningTrips, selectedTripId]);
 
-  // Day 选项：优先使用 daysList，否则按行程天数生成
+  // Day 选项：始终按行程总天数生成，确保所有天数都显示
   const dayOptions = useMemo(() => {
     if (!selectedTrip) return [];
-    const daysList = selectedTrip.daysList;
-    if (daysList && daysList.length > 0) {
-      return daysList.map((s) => s.day).sort((a, b) => a - b);
-    }
     return Array.from({ length: selectedTrip.days }, (_, i) => i + 1);
   }, [selectedTrip]);
 
