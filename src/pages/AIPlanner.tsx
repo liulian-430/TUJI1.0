@@ -6,6 +6,7 @@ import AILoadingState from '../components/ui/Skeleton';
 import { mockPOIs, DaySchedule, TripPOI } from '../data/mock';
 import { useTripStore } from '@/store/useTripStore';
 import { useToastStore } from '@/store/useToastStore';
+import { DEFAULT_BUDGET, MIN_BUDGET, MAX_BUDGET, MIN_DAYS, MAX_DAYS, MIN_PEOPLE, MAX_PEOPLE } from '@/config/constants';
 
 export default function AIPlanner() {
   const navigate = useNavigate();
@@ -48,7 +49,7 @@ export default function AIPlanner() {
   const [days, setDays] = useState(3);
   const [nights, setNights] = useState(2);
   const [people, setPeople] = useState(2);
-  const [budget, setBudget] = useState(3000);
+  const [budget, setBudget] = useState(DEFAULT_BUDGET);
   const [startDate, setStartDate] = useState('');
 
   const [isGenerated, setIsGenerated] = useState(false);
@@ -113,16 +114,16 @@ export default function AIPlanner() {
       showToast('请输入目的地城市', 'error');
       return;
     }
-    if (days < 1 || days > 30) {
-      showToast('行程天数应在1-30天之间', 'error');
+    if (days < MIN_DAYS || days > MAX_DAYS) {
+      showToast(`行程天数应在${MIN_DAYS}-${MAX_DAYS}天之间`, 'error');
       return;
     }
-    if (people < 1 || people > 20) {
-      showToast('出行人数应在1-20人之间', 'error');
+    if (people < MIN_PEOPLE || people > MAX_PEOPLE) {
+      showToast(`出行人数应在${MIN_PEOPLE}-${MAX_PEOPLE}人之间`, 'error');
       return;
     }
-    if (budget < 1000 || budget > 50000) {
-      showToast('预算应在1000-50000元之间', 'error');
+    if (budget < MIN_BUDGET || budget > MAX_BUDGET) {
+      showToast(`预算应在${MIN_BUDGET}-${MAX_BUDGET}元之间`, 'error');
       return;
     }
     setIsGenerating(true);

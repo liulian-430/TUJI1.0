@@ -5,6 +5,7 @@ import GlassCard from '../components/ui/GlassCard';
 import { EmptyStateCompact } from '../components/ui/EmptyState';
 import { useTripStore, type Expense } from '@/store/useTripStore';
 import { useToastStore } from '@/store/useToastStore';
+import { DEFAULT_BUDGET, MAX_EXPENSE_AMOUNT } from '@/config/constants';
 
 export default function Budget() {
   const { tripId } = useParams();
@@ -23,7 +24,7 @@ export default function Budget() {
   const tripExpenses = expenses.filter((e) => e.tripId === tripId);
   const budget = budgets.find((b) => b.tripId === tripId) || {
     tripId: tripId || '1',
-    totalBudget: trip?.budget || 3000,
+    totalBudget: trip?.budget || DEFAULT_BUDGET,
     transportation: 1000,
     accommodation: 1500,
     food: 1000,
@@ -58,7 +59,7 @@ export default function Budget() {
       showToast('金额必须大于0', 'error');
       return;
     }
-    if (amount > 1000000) {
+    if (amount > MAX_EXPENSE_AMOUNT) {
       showToast('金额不能超过100万元', 'error');
       return;
     }

@@ -7,6 +7,7 @@ import WeatherWidget from '../components/ui/WeatherWidget';
 import { useTripStore } from '@/store/useTripStore';
 import type { DayScheduleSimple } from '@/store/useTripStore';
 import type { TripPOI } from '../data/mock';
+import { DEFAULT_BUDGET } from '@/config/constants';
 
 // 时段配置
 const slotConfig = [
@@ -59,7 +60,7 @@ export default function TripDetail() {
 
   const tripExpenses = expenses.filter((e) => e.tripId === trip.id);
   const totalSpent = tripExpenses.reduce((acc, e) => acc + e.amount, 0);
-  const totalBudget = trip.budget || 3000;
+  const totalBudget = trip.budget || DEFAULT_BUDGET;
   const percentUsed = totalBudget > 0 ? Math.min((totalSpent / totalBudget) * 100, 100) : 0;
   const remaining = totalBudget - totalSpent;
 

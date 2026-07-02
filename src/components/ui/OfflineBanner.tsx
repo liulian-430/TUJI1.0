@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { WifiOff, Wifi, X } from 'lucide-react';
+import { TOAST_DURATION } from '@/config/constants';
 
 /**
  * 离线状态监测 Hook
@@ -44,11 +45,11 @@ export function OfflineBanner({ onDismiss }: OfflineBannerProps) {
       setVisible(true);
       setWasOffline(true);
     } else if (wasOffline && isOnline) {
-      // 恢复在线后 3 秒自动隐藏
+      // 恢复在线后自动隐藏
       const timer = setTimeout(() => {
         setVisible(false);
         onDismiss?.();
-      }, 3000);
+      }, TOAST_DURATION);
       return () => clearTimeout(timer);
     }
   }, [isOnline, wasOffline, onDismiss]);

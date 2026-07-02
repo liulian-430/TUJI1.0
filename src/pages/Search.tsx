@@ -5,6 +5,7 @@ import GlassCard from '../components/ui/GlassCard';
 import { EmptyStateCompact } from '../components/ui/EmptyState';
 import POICard from '../components/poi/POICard';
 import { mockPOIs, userGuides } from '@/data/mock';
+import { MAX_SEARCH_HISTORY } from '@/config/constants';
 
 // 热门搜索词
 const trendingSearches = ['798艺术区', '三里屯', '南锣鼓巷', '鸟巢', '水立方'];
@@ -19,8 +20,6 @@ const categoryTypeMap: Record<string, string> = {
 };
 // localStorage 搜索历史的键名
 const HISTORY_KEY = 'search_history';
-// 历史记录最大条数
-const MAX_HISTORY = 10;
 
 export default function Search() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -55,7 +54,7 @@ export default function Search() {
     const t = term.trim();
     if (!t) return;
     setHistory((prev) => {
-      const next = [t, ...prev.filter((h) => h !== t)].slice(0, MAX_HISTORY);
+      const next = [t, ...prev.filter((h) => h !== t)].slice(0, MAX_SEARCH_HISTORY);
       localStorage.setItem(HISTORY_KEY, JSON.stringify(next));
       return next;
     });

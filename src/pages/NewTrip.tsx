@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Sparkles, Check, Calendar, MapPin, DollarSign, ChevronDown, ChevronUp, Users } from 'lucide-react';
 import { useTripStore, type Trip } from '@/store/useTripStore';
 import { useToastStore } from '@/store/useToastStore';
+import { DEFAULT_BUDGET } from '@/config/constants';
 
 export default function NewTrip() {
   const navigate = useNavigate();
@@ -27,7 +28,7 @@ export default function NewTrip() {
       nights: pendingTrip.nights ?? Math.max(0, pendingTrip.days - 1),
       people: pendingTrip.people ?? 1,
       startDate: new Date().toISOString().split('T')[0],
-      budget: pendingTrip.budget ?? 3000,
+      budget: pendingTrip.budget ?? DEFAULT_BUDGET,
       spent: 0,
       pois: pendingTrip.pois,
       status: 'in_progress',
@@ -91,7 +92,7 @@ export default function NewTrip() {
               </div>
               <div>
                 <p className="text-sm text-gray-500">预计预算</p>
-                <p className="font-medium text-gray-800">¥{pendingTrip.budget ?? 3000}</p>
+                <p className="font-medium text-gray-800">¥{pendingTrip.budget ?? DEFAULT_BUDGET}</p>
               </div>
             </div>
           </div>
