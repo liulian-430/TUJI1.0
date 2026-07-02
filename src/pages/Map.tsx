@@ -273,8 +273,13 @@ export default function Map() {
     );
   }, [searchQuery]);
 
-  // 点击 POI 卡片：高亮并平移到该坐标
+  // 点击 POI 卡片：高亮并平移到该坐标；再次点击则取消选中并重置视野
   const handlePoiClick = (poi: TripPOI) => {
+    if (selectedPoi === poi.id) {
+      setSelectedPoi(null);
+      handleResetView();
+      return;
+    }
     setSelectedPoi(poi.id);
     if (typeof poi.latitude === 'number' && typeof poi.longitude === 'number') {
       mapRef.current?.panTo([poi.latitude, poi.longitude]);
@@ -529,7 +534,14 @@ export default function Map() {
               key={poi.id}
               position={position}
               icon={createPoiIcon(poi.type, selectedPoi === poi.id, viewMode !== 'all' ? order : day)}
-              eventHandlers={{ click: () => setSelectedPoi(poi.id) }}
+              eventHandlers={{ click: () => {
+                if (selectedPoi === poi.id) {
+                  setSelectedPoi(null);
+                  handleResetView();
+                } else {
+                  setSelectedPoi(poi.id);
+                }
+              }}}
             >
               <Popup>
                 <div className="min-w-[180px]">
