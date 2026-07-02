@@ -1,5 +1,5 @@
-import { useState, useCallback } from 'react';
-import { Star, Heart, Plus, X } from 'lucide-react';
+import { useState, useCallback, useMemo } from 'react';
+import { Star, Heart, Plus, X, MapPin } from 'lucide-react';
 import GlassCard from '../ui/GlassCard';
 import { POI, TripPOI } from '../../data/mock';
 import { useTripStore } from '@/store/useTripStore';
@@ -18,7 +18,11 @@ export default function POICard({ poi, onClick, compact = false, showAddButton =
   const { showToast } = useToastStore();
   const isFavorited = favoritePOIs.includes(poi.id) || favoritePOIs.includes(poi.name);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [selectedTrip, setSelectedTrip] = useState<string>('');
+
+  const currentTrip = useMemo(() => {
+    const planning = trips.filter((t) => t.status !== 'completed');
+    return planning.length > 0 ? planning[0] : null;
+  }, [trips]);
 
   const typeMap = {
     scenic: { label: '景点', color: 'bg-green-500/20 text-green-600' },
@@ -37,16 +41,15 @@ export default function POICard({ poi, onClick, compact = false, showAddButton =
 
   const handleAddClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (trips.length === 0) {
+    if (!currentTrip) {
       showToast('请先创建一个行程', 'info');
       return;
     }
-    setSelectedTrip(trips[0].id);
     setShowAddModal(true);
   };
 
   const handleConfirmAdd = () => {
-    if (!selectedTrip) return;
+    if (!currentTrip) return;
     const newPoi: TripPOI = {
       id: `${poi.id}-${Date.now()}`,
       name: poi.name,
@@ -57,7 +60,7 @@ export default function POICard({ poi, onClick, compact = false, showAddButton =
       latitude: poi.latitude,
       longitude: poi.longitude,
     };
-    addPOIToTrip(selectedTrip, newPoi);
+    addPOIToTrip(currentTrip.id, newPoi);
     setShowAddModal(false);
     showToast('已添加到行程', 'success');
   };
@@ -92,7 +95,7 @@ export default function POICard({ poi, onClick, compact = false, showAddButton =
           )}
         </div>
 
-        {showAddModal && (
+        {showAddModal && currentTrip && (
           <div
             className="fixed inset-0 z-[1100] flex items-center justify-center bg-black/40 backdrop-blur-sm"
             onClick={(e) => e.stopPropagation()}
@@ -107,39 +110,32 @@ export default function POICard({ poi, onClick, compact = false, showAddButton =
                   <X size={16} className="text-gray-500" />
                 </button>
               </div>
-              <div className="space-y-2 max-h-64 overflow-y-auto mb-4">
-                {trips.map((trip) => {
-                  const active = trip.id === selectedTrip;
-                  return (
-                    <button
-                      key={trip.id}
-                      onClick={() => setSelectedTrip(trip.id)}
-                      className={`w-full p-3 rounded-xl flex items-center gap-3 transition-all ${
-                        active
-                          ? 'bg-primary-mid/10 ring-2 ring-primary-mid'
-                          : 'bg-white/50 hover:bg-white/70'
-                      }`}
-                    >
-                      <img
-                        src={trip.coverImage}
-                        alt={trip.name}
-                        className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
-                      />
-                      <div className="flex-1 min-w-0 text-left">
-                        <p className="font-medium text-gray-800 text-sm truncate">{trip.name}</p>
-                        <p className="text-xs text-gray-500">{trip.days}天 · {trip.pois?.length || 0}个景点</p>
-                      </div>
-                      {active && <Plus size={16} className="text-primary-mid flex-shrink-0" />}
-                    </button>
-                  );
-                })}
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-primary-mid/5 mb-5">
+                <img
+                  src={currentTrip.coverImage}
+                  alt={currentTrip.name}
+                  className="w-12 h-12 rounded-xl object-cover flex-shrink-0"
+                />
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-gray-800 text-sm truncate">{currentTrip.name}</p>
+                  <p className="text-xs text-gray-500">{currentTrip.days}天 · {currentTrip.pois?.length || 0}个景点</p>
+                </div>
+                <MapPin size={16} className="text-primary-mid flex-shrink-0" />
               </div>
-              <button
-                onClick={handleConfirmAdd}
-                className="w-full py-2.5 rounded-xl bg-gradient-primary text-white font-medium text-sm shadow-lg hover:shadow-xl transition-all"
-              >
-                确认添加
-              </button>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowAddModal(false)}
+                  className="flex-1 py-2.5 rounded-xl bg-gray-100 text-gray-600 text-sm font-medium hover:bg-gray-200 transition-colors"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleConfirmAdd}
+                  className="flex-1 py-2.5 rounded-xl bg-gradient-primary text-white text-sm font-medium shadow-lg hover:shadow-xl transition-all"
+                >
+                  确认添加
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -197,7 +193,7 @@ export default function POICard({ poi, onClick, compact = false, showAddButton =
         <p className="text-xs text-gray-500 mt-2 line-clamp-2">{poi.description}</p>
       </div>
 
-      {showAddModal && (
+      {showAddModal && currentTrip && (
         <div
           className="fixed inset-0 z-[1100] flex items-center justify-center bg-black/40 backdrop-blur-sm"
           onClick={(e) => e.stopPropagation()}
@@ -212,39 +208,32 @@ export default function POICard({ poi, onClick, compact = false, showAddButton =
                 <X size={18} className="text-gray-500" />
               </button>
             </div>
-            <div className="space-y-2 max-h-72 overflow-y-auto mb-4">
-              {trips.map((trip) => {
-                const active = trip.id === selectedTrip;
-                return (
-                  <button
-                    key={trip.id}
-                    onClick={() => setSelectedTrip(trip.id)}
-                    className={`w-full p-3 rounded-xl flex items-center gap-3 transition-all ${
-                      active
-                        ? 'bg-primary-mid/10 ring-2 ring-primary-mid'
-                        : 'bg-white/50 hover:bg-white/70'
-                    }`}
-                  >
-                    <img
-                      src={trip.coverImage}
-                      alt={trip.name}
-                      className="w-12 h-12 rounded-xl object-cover flex-shrink-0"
-                    />
-                    <div className="flex-1 min-w-0 text-left">
-                      <p className="font-medium text-gray-800 truncate">{trip.name}</p>
-                      <p className="text-xs text-gray-500">{trip.days}天 · {trip.pois?.length || 0}个景点</p>
-                    </div>
-                    {active && <Plus size={18} className="text-primary-mid flex-shrink-0" />}
-                  </button>
-                );
-              })}
+            <div className="flex items-center gap-3 p-4 rounded-xl bg-primary-mid/5 mb-5">
+              <img
+                src={currentTrip.coverImage}
+                alt={currentTrip.name}
+                className="w-14 h-14 rounded-xl object-cover flex-shrink-0"
+              />
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-gray-800 truncate">{currentTrip.name}</p>
+                <p className="text-sm text-gray-500">{currentTrip.days}天 · {currentTrip.pois?.length || 0}个景点</p>
+              </div>
+              <MapPin size={18} className="text-primary-mid flex-shrink-0" />
             </div>
-            <button
-              onClick={handleConfirmAdd}
-              className="w-full py-3 rounded-xl bg-gradient-primary text-white font-medium shadow-lg hover:shadow-xl transition-all"
-            >
-              确认添加
-            </button>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowAddModal(false)}
+                className="flex-1 py-3 rounded-xl bg-gray-100 text-gray-600 font-medium hover:bg-gray-200 transition-colors"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleConfirmAdd}
+                className="flex-1 py-3 rounded-xl bg-gradient-primary text-white font-medium shadow-lg hover:shadow-xl transition-all"
+              >
+                确认添加
+              </button>
+            </div>
           </div>
         </div>
       )}

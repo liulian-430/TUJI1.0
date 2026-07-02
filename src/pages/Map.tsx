@@ -161,6 +161,8 @@ export default function Map() {
   const [dayToDelete, setDayToDelete] = useState<number | null>(null);
   const [showTripSelector, setShowTripSelector] = useState(false);
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dayScrollRef = useRef<HTMLDivElement | null>(null);
+  const [dayScrollProgress, setDayScrollProgress] = useState(0);
   const mapRef = useRef<L.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const paramsHandledRef = useRef(false);
@@ -373,8 +375,22 @@ export default function Map() {
   };
 
   // 自定义缩放
-  const handleZoomIn = () => mapRef.current?.zoomIn();
-  const handleZoomOut = () => mapRef.current?.zoomOut();
+  const handleZoomIn = () => {
+    if (!mapRef.current) return;
+    const currentZoom = mapRef.current.getZoom();
+    const maxZoom = mapRef.current.getMaxZoom();
+    if (currentZoom < maxZoom) {
+      mapRef.current.zoomIn();
+    }
+  };
+  const handleZoomOut = () => {
+    if (!mapRef.current) return;
+    const currentZoom = mapRef.current.getZoom();
+    const minZoom = mapRef.current.getMinZoom();
+    if (currentZoom > minZoom) {
+      mapRef.current.zoomOut();
+    }
+  };
 
   // 右滑删除：从 store 中移除
   const handleDeletePoi = (poiId: string) => {
@@ -488,6 +504,8 @@ export default function Map() {
           key={selectedTrip.id}
           center={mapCenter}
           zoom={12}
+          minZoom={3}
+          maxZoom={18}
           scrollWheelZoom
           zoomControl={false}
           className="w-full h-full"
@@ -679,7 +697,15 @@ export default function Map() {
       {/* Day 切换栏 */}
       <div className="px-4 md:px-6 py-4 bg-white/30 backdrop-blur-xl border-b border-white/20">
         <div className="max-w-4xl mx-auto">
-          <div className="flex items-center gap-3 overflow-x-auto scrollbar-hide pb-2">
+          <div
+            ref={dayScrollRef}
+            onScroll={(e) => {
+              const el = e.currentTarget;
+              const max = el.scrollWidth - el.clientWidth;
+              setDayScrollProgress(max > 0 ? el.scrollLeft / max : 0);
+            }}
+            className="flex items-center gap-3 overflow-x-auto scrollbar-hide pb-3"
+          >
             <button
               onClick={() => setViewMode('all')}
               className={`flex-shrink-0 px-4 py-2 rounded-xl font-medium transition-all ${
@@ -722,6 +748,14 @@ export default function Map() {
               添加天数
             </button>
           </div>
+          {dayScrollProgress > 0 || dayScrollProgress < 1 ? (
+            <div className="mt-2 h-1 bg-white/30 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-primary rounded-full transition-all duration-150"
+                style={{ width: `${Math.max(10, dayScrollProgress * 100)}%`, marginLeft: `${dayScrollProgress * (100 - Math.max(10, dayScrollProgress * 100))}%` }}
+              />
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -733,26 +767,31 @@ export default function Map() {
               const isSelected = selectedPoi === poi.id;
               const dayColorIndex = index % dayButtonColors.length;
               const day = getDayForPoi(poi.id);
+              const isUnscheduled = !day;
 
               return (
                 <SwipeableCard key={poi.id} onDelete={() => handleDeletePoi(poi.id)}>
                   <GlassCard
                     className={`overflow-hidden cursor-pointer transition-all ${
                       isSelected ? 'ring-2 ring-primary-mid' : ''
-                    }`}
+                    } ${isUnscheduled ? 'border-l-4 border-l-amber-400' : ''}`}
                     onClick={() => handlePoiClick(poi)}
                   >
                     <div className="flex items-start gap-3 p-4">
                       <div
-                        className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold shadow-md flex-shrink-0 bg-gradient-to-br ${dayButtonColors[dayColorIndex]}`}
+                        className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold shadow-md flex-shrink-0 bg-gradient-to-br ${
+                          isUnscheduled
+                            ? 'from-amber-400 to-orange-500'
+                            : dayButtonColors[dayColorIndex]
+                        }`}
                       >
-                        {index + 1}
+                        {isUnscheduled ? '?' : index + 1}
                       </div>
 
                       <img
                         src={poi.image}
                         alt={poi.name}
-                        className="w-20 h-20 rounded-lg object-cover flex-shrink-0"
+                        className={`w-20 h-20 rounded-lg object-cover flex-shrink-0 ${isUnscheduled ? 'opacity-80' : ''}`}
                       />
 
                       <div className="flex-1 min-w-0">
@@ -760,6 +799,11 @@ export default function Map() {
                           <span className={`text-xs px-2 py-0.5 rounded border ${typeColors[poi.type]}`}>
                             {typeLabels[poi.type]}
                           </span>
+                          {isUnscheduled && (
+                            <span className="text-xs px-2 py-0.5 rounded bg-amber-100 text-amber-700 border border-amber-200 font-medium">
+                              待安排
+                            </span>
+                          )}
                           {poi.duration && (
                             <span className="text-xs text-gray-500">{poi.duration}</span>
                           )}
@@ -775,10 +819,12 @@ export default function Map() {
                           e.stopPropagation();
                           handleOpenMoveDay(poi.id);
                         }}
-                        className="flex items-center gap-1 text-xs text-gray-500 hover:text-primary-mid transition-colors px-2 py-1 rounded-lg hover:bg-primary-mid/10"
+                        className={`flex items-center gap-1 text-xs hover:text-primary-mid transition-colors px-2 py-1 rounded-lg hover:bg-primary-mid/10 ${
+                          isUnscheduled ? 'text-amber-600 bg-amber-50' : 'text-gray-500'
+                        }`}
                       >
-                        <span className="font-medium">{day ? `Day${day}` : '未安排'}</span>
-                        <Edit3 size={12} className="text-gray-400" />
+                        <span className="font-medium">{day ? `Day${day}` : '去安排'}</span>
+                        <Edit3 size={12} className={isUnscheduled ? 'text-amber-500' : 'text-gray-400'} />
                       </button>
                     </div>
                   </GlassCard>

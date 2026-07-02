@@ -226,18 +226,11 @@ export const useTripStore = create<TripState>()(
         trips: state.trips.map((t) => {
           if (t.id !== tripId) return t;
           const filteredList = (t.daysList || []).filter((d) => d.day !== day);
-          const poisInDay = (t.daysList || [])
-            .find((d) => d.day === day)
-            ?.afternoon || [];
-          const newPois = t.pois.filter(
-            (p) => !poisInDay.find((pp) => pp.id === p.id)
-          );
           const newDaysList = filteredList
             .sort((a, b) => a.day - b.day)
             .map((d, idx) => ({ ...d, day: idx + 1 }));
           return {
             ...t,
-            pois: newPois,
             days: newDaysList.length,
             daysList: newDaysList.length > 0 ? newDaysList : undefined,
           };
