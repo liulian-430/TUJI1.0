@@ -382,17 +382,17 @@ export default function Map() {
   const handleZoomIn = () => {
     if (!mapRef.current) return;
     const currentZoom = mapRef.current.getZoom();
-    const maxZoom = mapRef.current.getMaxZoom();
+    const maxZoom = mapRef.current.getMaxZoom() ?? 18;
     if (currentZoom < maxZoom) {
-      mapRef.current.zoomIn();
+      mapRef.current.setZoom(currentZoom + 1);
     }
   };
   const handleZoomOut = () => {
     if (!mapRef.current) return;
     const currentZoom = mapRef.current.getZoom();
-    const minZoom = mapRef.current.getMinZoom();
+    const minZoom = mapRef.current.getMinZoom() ?? 0;
     if (currentZoom > minZoom) {
-      mapRef.current.zoomOut();
+      mapRef.current.setZoom(currentZoom - 1);
     }
   };
 
