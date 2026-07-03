@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline, ZoomControl } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { MapPin, Search, Plus, Navigation, Layers, ChevronDown, Trash2, X, Maximize2, Minimize2, Edit3, PlusCircle, Minus, GripVertical, Bus, TrainFront, Car, Footprints, ArrowDown } from 'lucide-react';
@@ -507,9 +507,10 @@ export default function Map() {
           minZoom={3}
           maxZoom={18}
           scrollWheelZoom
-          zoomControl={true}
+          zoomControl={false}
           className="w-full h-full custom-map"
         >
+          <ZoomControl position="bottomright" />
           <TileLayer
             attribution={layerOptions.find((l) => l.id === activeLayer)?.attribution}
             url={layerOptions.find((l) => l.id === activeLayer)?.url || layerOptions[0].url}

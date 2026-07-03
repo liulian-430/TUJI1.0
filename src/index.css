@@ -129,39 +129,38 @@ body {
 
 /* Leaflet 原生缩放控件样式调整 */
 .custom-map .leaflet-control-zoom {
-  position: absolute;
-  bottom: 1rem;
-  right: 0.75rem;
-  top: auto !important;
-  left: auto !important;
-  border-radius: 1rem;
-  overflow: hidden;
-  box-shadow: 0 8px 32px rgba(31, 38, 135, 0.1);
+  margin: 16px 12px !important;
+  border-radius: 16px !important;
+  overflow: hidden !important;
+  box-shadow: 0 8px 32px rgba(31, 38, 135, 0.15) !important;
+  border: none !important;
 }
 
 .custom-map .leaflet-control-zoom a {
-  width: 40px;
-  height: 40px;
-  line-height: 40px;
-  font-size: 18px;
-  background: rgba(255, 255, 255, 0.9);
-  border: none;
-  color: #374151;
-  transition: all 0.2s;
+  width: 40px !important;
+  height: 40px !important;
+  line-height: 40px !important;
+  font-size: 20px !important;
+  font-weight: bold;
+  background: rgba(255, 255, 255, 0.95) !important;
+  border: none !important;
+  color: #374151 !important;
+  transition: all 0.2s ease !important;
+  text-decoration: none !important;
 }
 
 .custom-map .leaflet-control-zoom a:hover {
-  background: rgba(255, 255, 255, 1);
+  background: rgba(255, 255, 255, 1) !important;
   transform: scale(1.05);
 }
 
-.custom-map .leaflet-control-zoom a:first-child {
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+.custom-map .leaflet-control-zoom a.leaflet-control-zoom-in {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
 }
 
 .custom-map .leaflet-control-zoom a.leaflet-disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+  opacity: 0.4 !important;
+  cursor: not-allowed !important;
 }
 
 /* 骨架屏 shimmer 动画 */
