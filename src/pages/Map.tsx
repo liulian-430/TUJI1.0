@@ -158,6 +158,7 @@ export default function Map() {
   const [showLayerPanel, setShowLayerPanel] = useState(false);
   const [activeLayer, setActiveLayer] = useState('standard');
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isMapExpanded, setIsMapExpanded] = useState(false);
   const [showMoveDayModal, setShowMoveDayModal] = useState(false);
   const [movingPoiId, setMovingPoiId] = useState<string | null>(null);
   const [dayToDelete, setDayToDelete] = useState<number | null>(null);
@@ -498,7 +499,9 @@ export default function Map() {
         className={`relative overflow-hidden transition-all duration-300 ${
           isFullscreen
             ? 'fixed inset-0 z-[2000] h-screen w-screen rounded-none'
-            : 'h-[40vh] md:h-[50vh]'
+            : isMapExpanded
+              ? 'h-[70vh] md:h-[80vh]'
+              : 'h-[40vh] md:h-[50vh]'
         }`}
       >
         <MapContainer
@@ -628,22 +631,6 @@ export default function Map() {
 
         {/* 地图右上角工具按钮 */}
         <div className="absolute top-3 right-3 z-[1000] flex flex-col gap-2">
-          <div className="glass-card flex flex-col overflow-hidden">
-            <button
-              onClick={() => mapRef.current?.zoomIn()}
-              className="p-3 hover:bg-white/40 transition-colors border-b border-white/20"
-              title="放大"
-            >
-              <Plus size={20} className="text-gray-700" />
-            </button>
-            <button
-              onClick={() => mapRef.current?.zoomOut()}
-              className="p-3 hover:bg-white/40 transition-colors"
-              title="缩小"
-            >
-              <Minus size={20} className="text-gray-700" />
-            </button>
-          </div>
           <button
             onClick={toggleFullscreen}
             className="glass-card p-3 hover:bg-white/40 transition-colors"
@@ -692,6 +679,7 @@ export default function Map() {
           <button
             onClick={handleResetView}
             className="glass-card p-3 hover:bg-white/40 transition-colors"
+            title="重置视野"
           >
             <Navigation size={20} className="text-gray-700" />
           </button>
@@ -709,6 +697,24 @@ export default function Map() {
             </div>
           ))}
         </div>
+
+        {/* 右下角地图展开/收起按钮 */}
+        <button
+          onClick={() => {
+            setIsMapExpanded(!isMapExpanded);
+            setTimeout(() => {
+              mapRef.current?.invalidateSize();
+            }, 300);
+          }}
+          className="absolute bottom-3 right-3 z-[1000] glass-card p-3 hover:bg-white/40 transition-colors"
+          title={isMapExpanded ? '收起地图' : '展开地图'}
+        >
+          {isMapExpanded ? (
+            <ArrowDown size={20} className="text-gray-700" />
+          ) : (
+            <Maximize2 size={20} className="text-gray-700" />
+          )}
+        </button>
       </div>
 
       {/* Day 切换栏 */}
