@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Sparkles, Mic, ChevronUp, ChevronDown, Trash2, Plus, MapPin, Calendar, Users, DollarSign, Utensils, Building, X } from 'lucide-react';
 import GlassCard from '../components/ui/GlassCard';
@@ -16,10 +16,12 @@ export default function AIPlanner() {
   const [activeTab, setActiveTab] = useState<'ai' | 'custom'>('ai');
   const [aiInput, setAiInput] = useState('');
   const [isListening, setIsListening] = useState(false);
+  const voiceToastShownRef = useRef(false);
 
   useEffect(() => {
     const voice = searchParams.get('voice');
-    if (voice === 'true') {
+    if (voice === 'true' && !voiceToastShownRef.current) {
+      voiceToastShownRef.current = true;
       setAiInput('我想去北京玩3天，想去故宫和长城，想吃北京烤鸭，住靠近市中心的酒店，预算3000元');
       showToast('已识别语音输入', 'success');
     }
