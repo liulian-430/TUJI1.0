@@ -630,8 +630,8 @@ export default function Map() {
         )}
 
         {/* 地图右上角工具按钮 */}
-        <div className="absolute top-3 right-3 z-[1000] flex flex-col gap-2">
-          <div className="glass-card flex flex-col overflow-hidden">
+        <div className="absolute top-4 right-4 z-[1000] flex flex-col gap-3">
+          <div className="glass-card flex flex-col overflow-hidden rounded-xl">
             <button
               onClick={() => mapRef.current?.zoomIn()}
               className="p-3 hover:bg-white/40 transition-colors border-b border-white/20"
@@ -650,7 +650,7 @@ export default function Map() {
           <div className="relative">
             <button
               onClick={() => setShowLayerPanel(!showLayerPanel)}
-              className="glass-card p-3 hover:bg-white/40 transition-colors"
+              className="glass-card p-3 hover:bg-white/40 transition-colors rounded-xl"
             >
               <Layers size={20} className="text-gray-700" />
             </button>
@@ -683,7 +683,7 @@ export default function Map() {
           </div>
           <button
             onClick={handleResetView}
-            className="glass-card p-3 hover:bg-white/40 transition-colors"
+            className="glass-card p-3 hover:bg-white/40 transition-colors rounded-xl"
             title="重置视野"
           >
             <Navigation size={20} className="text-gray-700" />
