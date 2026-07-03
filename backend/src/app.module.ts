@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { TripsModule } from './trips/trips.module';
 import { PoisModule } from './pois/pois.module';
@@ -9,17 +9,34 @@ import { AuthModule } from './auth/auth.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-      host: process.env.DB_HOST,
-      port: parseInt(process.env.DB_PORT),
-      username: process.env.DB_USERNAME,
-      password: process.env.DB_PASSWORD,
-      database: process.env.DB_DATABASE,
-      entities: ['dist/**/*.entity{.ts,.js}'],
-      migrations: ['dist/migrations/**/*{.ts,.js}'],
-      synchronize: process.env.NODE_ENV !== 'production',
-      logging: process.env.NODE_ENV !== 'production',
+    TypeOrmModule.forRootAsync({
+      useFactory: (configService: ConfigService) => {
+        const dbType = configService.get('DB_TYPE') || 'sqlite';
+        const baseConfig = {
+          entities: [__dirname + '/**/*.entity{.ts,.js}'],
+          synchronize: configService.get('NODE_ENV') !== 'production',
+          logging: configService.get('NODE_ENV') !== 'production',
+        };
+
+        if (dbType === 'postgres') {
+          return {
+            ...baseConfig,
+            type: 'postgres',
+            host: configService.get('DB_HOST'),
+            port: parseInt(configService.get('DB_PORT')),
+            username: configService.get('DB_USERNAME'),
+            password: configService.get('DB_PASSWORD'),
+            database: configService.get('DB_DATABASE'),
+          };
+        }
+
+        return {
+          ...baseConfig,
+          type: 'better-sqlite3',
+          database: configService.get('DB_DATABASE') || 'tuji_dev.db',
+        };
+      },
+      inject: [ConfigService],
     }),
     TripsModule,
     PoisModule,

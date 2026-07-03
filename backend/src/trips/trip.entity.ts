@@ -26,7 +26,7 @@ export class Trip {
   @Column()
   startDate: string;
 
-  @Column({ type: 'enum', enum: ['planning', 'in_progress', 'completed'], default: 'planning' })
+  @Column({ default: 'planning' })
   status: TripStatus;
 
   @Column({ nullable: true })

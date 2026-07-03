@@ -11,7 +11,7 @@ export class TripPoi {
   @Column()
   name: string;
 
-  @Column({ type: 'enum', enum: ['scenic', 'food', 'hotel', 'shopping'] })
+  @Column()
   type: POIType;
 
   @Column()

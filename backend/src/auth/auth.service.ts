@@ -30,8 +30,11 @@ export class AuthService {
   async register(phone: string, code: string) {
     const existingUser = await this.usersService.findOne(phone);
     if (existingUser) {
-      return existingUser;
+      const { password, ...result } = existingUser;
+      return result;
     }
-    return this.usersService.create({ phone, password: code });
+    const user = await this.usersService.create({ phone, password: code });
+    const { password, ...result } = user;
+    return result;
   }
 }

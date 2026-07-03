@@ -17,7 +17,11 @@ export class UsersService {
   }
 
   async findById(id: string): Promise<User> {
-    return this.userRepository.findOne({ where: { id } });
+    const user = await this.userRepository.findOne({ where: { id } });
+    if (user) {
+      delete (user as any).password;
+    }
+    return user;
   }
 
   async create(createUserDto: CreateUserDto): Promise<User> {

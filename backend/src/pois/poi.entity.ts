@@ -9,7 +9,7 @@ export class Poi {
   @Column()
   name: string;
 
-  @Column({ type: 'enum', enum: ['scenic', 'food', 'hotel', 'shopping'] })
+  @Column()
   type: POIType;
 
   @Column({ nullable: true })
