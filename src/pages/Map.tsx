@@ -145,32 +145,55 @@ function MapController({
 // 使用 useMap 获取地图实例的缩放控件（放在 MapContainer 内部，避免 ref 跨层失效）
 function ZoomControls() {
   const map = useMap();
+  const [canZoomIn, setCanZoomIn] = useState(true);
+  const [canZoomOut, setCanZoomOut] = useState(true);
+
+  useEffect(() => {
+    const updateZoomState = () => {
+      const current = map.getZoom();
+      const max = map.getMaxZoom() ?? 18;
+      const min = map.getMinZoom() ?? 3;
+      setCanZoomIn(current < max);
+      setCanZoomOut(current > min);
+    };
+    updateZoomState();
+    map.on('zoomend', updateZoomState);
+    return () => {
+      map.off('zoomend', updateZoomState);
+    };
+  }, [map]);
 
   const handleZoomIn = useCallback(() => {
     const current = map.getZoom();
     const max = map.getMaxZoom() ?? 18;
-    if (current < max) map.setZoom(current + 1);
+    if (current < max) {
+      map.setZoom(current + 1);
+    }
   }, [map]);
 
   const handleZoomOut = useCallback(() => {
     const current = map.getZoom();
-    const min = map.getMinZoom() ?? 0;
-    if (current > min) map.setZoom(current - 1);
+    const min = map.getMinZoom() ?? 3;
+    if (current > min) {
+      map.setZoom(current - 1);
+    }
   }, [map]);
 
   return (
-    <div className="absolute bottom-4 right-3 z-[1000] flex flex-col gap-1">
+    <div className="absolute bottom-4 right-3 z-[1000] flex flex-col gap-1 pointer-events-auto">
       <button
-        onClick={handleZoomIn}
-        className="glass-card w-10 h-10 flex items-center justify-center hover:bg-white/50 active:scale-95 transition-all"
+        onClick={(e) => { e.stopPropagation(); handleZoomIn(); }}
+        className={`glass-card w-10 h-10 flex items-center justify-center transition-all ${canZoomIn ? 'hover:bg-white/50 active:scale-95' : 'opacity-50 cursor-not-allowed'}`}
         type="button"
+        disabled={!canZoomIn}
       >
         <PlusCircle size={20} className="text-gray-700" />
       </button>
       <button
-        onClick={handleZoomOut}
-        className="glass-card w-10 h-10 flex items-center justify-center hover:bg-white/50 active:scale-95 transition-all"
+        onClick={(e) => { e.stopPropagation(); handleZoomOut(); }}
+        className={`glass-card w-10 h-10 flex items-center justify-center transition-all ${canZoomOut ? 'hover:bg-white/50 active:scale-95' : 'opacity-50 cursor-not-allowed'}`}
         type="button"
+        disabled={!canZoomOut}
       >
         <Minus size={20} className="text-gray-700" />
       </button>
@@ -234,6 +257,19 @@ export default function Map() {
       setCurrentTrip(planningTrips[0].id);
     }
   }, [trips, selectedTripId, setCurrentTrip]);
+
+  // 同步全屏状态（监听 fullscreenchange 事件，确保状态与实际一致）
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+      // 全屏切换后地图容器尺寸变化，需要重算地图
+      setTimeout(() => {
+        mapRef.current?.invalidateSize();
+      }, 100);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
 
   // 只显示进行中的行程（过滤掉已完成的）
   const planningTrips = useMemo(() => {
@@ -403,14 +439,16 @@ export default function Map() {
   };
 
   // 切换全屏
-  const toggleFullscreen = () => {
+  const toggleFullscreen = async () => {
     if (!mapContainerRef.current) return;
-    if (!document.fullscreenElement) {
-      mapContainerRef.current.requestFullscreen?.();
-      setIsFullscreen(true);
-    } else {
-      document.exitFullscreen?.();
-      setIsFullscreen(false);
+    try {
+      if (!document.fullscreenElement) {
+        await mapContainerRef.current.requestFullscreen?.();
+      } else {
+        await document.exitFullscreen?.();
+      }
+    } catch (err) {
+      console.error('全屏切换失败:', err);
     }
   };
 
