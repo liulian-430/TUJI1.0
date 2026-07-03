@@ -389,8 +389,8 @@ export default function Map() {
       } else {
         await document.exitFullscreen?.();
       }
-    } catch (err) {
-      console.error('全屏切换失败:', err);
+    } catch {
+      // 全屏切换失败时静默处理
     }
   };
 

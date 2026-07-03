@@ -38,8 +38,7 @@ export default function NewTrip() {
       clearPendingTrip();
       showToast('行程保存成功', 'success');
       navigate(`/trip/${createdTrip.id}`);
-    } catch (error) {
-      console.error('创建行程失败:', error);
+    } catch {
       showToast('创建行程失败，请重试', 'error');
     }
   };

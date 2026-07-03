@@ -235,8 +235,8 @@ export const useTripStore = create<TripState>()(
           const trips = await tripApi.list();
           const converted = trips.map(backendTripToFrontend);
           set({ trips: converted });
-        } catch (e) {
-          console.error('加载行程失败:', e);
+        } catch {
+          // 加载行程失败时静默处理
         } finally {
           set({ loading: false });
         }
@@ -251,8 +251,7 @@ export const useTripStore = create<TripState>()(
             trips: state.trips.map((t) => (t.id === tripId ? converted : t)),
           }));
           return converted;
-        } catch (e) {
-          console.error('加载行程详情失败:', e);
+        } catch {
           return null;
         }
       },
@@ -312,8 +311,7 @@ export const useTripStore = create<TripState>()(
             currentTripId: state.currentTripId || finalConverted.id,
           }));
           return finalConverted;
-        } catch (e) {
-          console.error('创建行程失败，使用本地模式:', e);
+        } catch {
           const localTrip = createLocalTrip();
           set((state) => ({
             trips: [localTrip, ...state.trips],

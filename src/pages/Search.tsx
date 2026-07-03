@@ -1,10 +1,10 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Search as SearchIcon, X, History, TrendingUp, Heart, SearchX } from 'lucide-react';
+import { Search as SearchIcon, X, History, TrendingUp, Heart, SearchX, SlidersHorizontal } from 'lucide-react';
 import GlassCard from '../components/ui/GlassCard';
 import { EmptyStateCompact } from '../components/ui/EmptyState';
 import POICard from '../components/poi/POICard';
-import { mockPOIs, userGuides } from '@/data/mock';
+import { mockPOIs, userGuides, provinces, provinceCityMap } from '@/data/mock';
 import { MAX_SEARCH_HISTORY } from '@/config/constants';
 
 // 热门搜索词
@@ -32,6 +32,10 @@ export default function Search() {
   const [category, setCategory] = useState('全部');
   // 搜索历史（来自 localStorage）
   const [history, setHistory] = useState<string[]>([]);
+  // 地区筛选
+  const [showAreaFilter, setShowAreaFilter] = useState(false);
+  const [provinceFilter, setProvinceFilter] = useState('全部');
+  const [cityFilter, setCityFilter] = useState('全部');
 
   // 初始化：读取 localStorage 历史与 URL 参数 q（仅首次挂载执行）
   useEffect(() => {
@@ -86,10 +90,10 @@ export default function Search() {
     }
   };
 
-  // 景点搜索结果（按关键词 + 分类筛选）
+  // 景点搜索结果（按关键词 + 分类 + 地区筛选）
   const poiResults = useMemo(() => {
-    const q = query.trim().toLowerCase();
     let list = mockPOIs;
+    const q = query.trim().toLowerCase();
     if (q) {
       list = list.filter(
         (poi) =>
@@ -102,21 +106,36 @@ export default function Search() {
       const type = categoryTypeMap[category];
       list = list.filter((poi) => poi.type === type);
     }
+    if (provinceFilter !== '全部') {
+      list = list.filter((poi) => poi.province === provinceFilter);
+      if (cityFilter !== '全部') {
+        list = list.filter((poi) => poi.city === cityFilter);
+      }
+    }
     return list;
-  }, [query, category]);
+  }, [query, category, provinceFilter, cityFilter]);
 
-  // 攻略搜索结果（按关键词筛选）
+  // 攻略搜索结果（按关键词 + 地区筛选）
   const guideResults = useMemo(() => {
+    let list = userGuides;
     const q = query.trim().toLowerCase();
-    if (!q) return userGuides;
-    return userGuides.filter(
-      (g) =>
-        g.title.toLowerCase().includes(q) ||
-        g.author.toLowerCase().includes(q) ||
-        g.destination.toLowerCase().includes(q) ||
-        g.description.toLowerCase().includes(q)
-    );
-  }, [query]);
+    if (q) {
+      list = list.filter(
+        (g) =>
+          g.title.toLowerCase().includes(q) ||
+          g.author.toLowerCase().includes(q) ||
+          g.destination.toLowerCase().includes(q) ||
+          g.description.toLowerCase().includes(q)
+      );
+    }
+    if (provinceFilter !== '全部') {
+      list = list.filter((g) => g.province === provinceFilter);
+      if (cityFilter !== '全部') {
+        list = list.filter((g) => g.destination === cityFilter);
+      }
+    }
+    return list;
+  }, [query, provinceFilter, cityFilter]);
 
   // 推荐景点（受分类筛选影响）
   const recommendedPOIs = useMemo(() => {
@@ -181,6 +200,83 @@ export default function Search() {
             </button>
           ))}
         </div>
+
+        {/* 地区筛选按钮 */}
+        <div className="flex items-center justify-between mb-4">
+          <button
+            onClick={() => setShowAreaFilter(!showAreaFilter)}
+            className={`flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-lg transition-colors ${
+              showAreaFilter || provinceFilter !== '全部'
+                ? 'bg-primary-mid/20 text-primary-mid'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <SlidersHorizontal size={15} />
+            {provinceFilter === '全部' ? '地区筛选' : `${provinceFilter}${cityFilter !== '全部' ? ` · ${cityFilter}` : ''}`}
+          </button>
+          {(provinceFilter !== '全部' || cityFilter !== '全部') && (
+            <button
+              onClick={() => { setProvinceFilter('全部'); setCityFilter('全部'); }}
+              className="text-xs text-gray-400 hover:text-gray-600"
+            >
+              重置筛选
+            </button>
+          )}
+        </div>
+
+        {/* 地区筛选面板 */}
+        {showAreaFilter && (
+          <div className="mb-4 p-4 glass-card rounded-xl space-y-3">
+            <div>
+              <span className="text-xs text-gray-500 mb-1.5 block">省份</span>
+              <div className="flex gap-2 flex-wrap">
+                {provinces.map((p) => (
+                  <button
+                    key={p}
+                    onClick={() => { setProvinceFilter(p); setCityFilter('全部'); }}
+                    className={`px-3 py-1.5 rounded-lg text-xs transition-all ${
+                      provinceFilter === p
+                        ? 'bg-gradient-primary text-white'
+                        : 'bg-white/40 text-gray-600 hover:bg-white/60'
+                    }`}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {provinceFilter !== '全部' && provinceCityMap[provinceFilter]?.length > 0 && (
+              <div>
+                <span className="text-xs text-gray-500 mb-1.5 block">城市</span>
+                <div className="flex gap-2 flex-wrap">
+                  <button
+                    onClick={() => setCityFilter('全部')}
+                    className={`px-3 py-1.5 rounded-lg text-xs transition-all ${
+                      cityFilter === '全部'
+                        ? 'bg-gradient-primary text-white'
+                        : 'bg-white/40 text-gray-600 hover:bg-white/60'
+                    }`}
+                  >
+                    全部
+                  </button>
+                  {provinceCityMap[provinceFilter].map((c) => (
+                    <button
+                      key={c}
+                      onClick={() => setCityFilter(c)}
+                      className={`px-3 py-1.5 rounded-lg text-xs transition-all ${
+                        cityFilter === c
+                          ? 'bg-gradient-primary text-white'
+                          : 'bg-white/40 text-gray-600 hover:bg-white/60'
+                      }`}
+                    >
+                      {c}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* 分类筛选：仅在景点 Tab 显示 */}
         {activeTab === 'pois' && (
