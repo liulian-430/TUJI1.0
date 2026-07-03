@@ -523,7 +523,6 @@ export default function Map() {
         }`}
       >
         <MapContainer
-          key={selectedTrip.id}
           center={mapCenter}
           zoom={12}
           minZoom={3}

@@ -3,6 +3,11 @@ import { persist } from 'zustand/middleware';
 import type { TripPOI, DayScheduleSimple } from '@/data/mock';
 import { tripApi } from '@/api/trip';
 
+function isLoggedIn(): boolean {
+  const token = localStorage.getItem('token');
+  return !!token;
+}
+
 export interface Trip {
   id: string;
   name: string;
@@ -249,8 +254,32 @@ export const useTripStore = create<TripState>()(
 
       createTrip: async (tripData) => {
         const { pois, schedules, ...baseData } = tripData as any;
+        
+        if (!isLoggedIn()) {
+          const localTrip: Trip = {
+            id: `trip-${Date.now()}`,
+            name: baseData.name,
+            destination: baseData.destination,
+            days: baseData.days,
+            nights: baseData.nights,
+            people: baseData.people,
+            startDate: baseData.startDate,
+            status: baseData.status || 'planning',
+            budget: baseData.budget,
+            spent: baseData.spent || 0,
+            coverImage: baseData.coverImage,
+            pois: pois || [],
+            daysList: schedules,
+            createdAt: new Date().toISOString(),
+          };
+          set((state) => ({
+            trips: [localTrip, ...state.trips],
+            currentTripId: state.currentTripId || localTrip.id,
+          }));
+          return localTrip;
+        }
+
         const created = await tripApi.create(baseData);
-        const converted = backendTripToFrontend(created as any);
         
         if (schedules && schedules.length > 0) {
           for (const daySchedule of schedules) {
@@ -289,6 +318,7 @@ export const useTripStore = create<TripState>()(
             ? [...state.undoStack, { type: 'removeTrip', payload: deletedTrip }]
             : state.undoStack,
         }));
+        if (!isLoggedIn()) return;
         try {
           await tripApi.delete(tripId);
         } catch (e) {
@@ -303,12 +333,19 @@ export const useTripStore = create<TripState>()(
         }
       },
       updateTrip: async (tripId, updates) => {
+        const oldTrip = get().trips.find((t) => t.id === tripId);
         set((state) => ({
           trips: state.trips.map((t) => (t.id === tripId ? { ...t, ...updates } : t)),
         }));
+        if (!isLoggedIn()) return;
         try {
           await tripApi.update(tripId, updates);
         } catch (e) {
+          if (oldTrip) {
+            set((state) => ({
+              trips: state.trips.map((t) => (t.id === tripId ? oldTrip : t)),
+            }));
+          }
           throw e;
         }
       },
@@ -335,6 +372,7 @@ export const useTripStore = create<TripState>()(
             };
           }),
         }));
+        if (!isLoggedIn()) return;
         try {
           await tripApi.addPOI(tripId, { ...poi, day } as any);
         } catch (e) {
@@ -383,6 +421,7 @@ export const useTripStore = create<TripState>()(
               : state.undoStack,
           };
         });
+        if (!isLoggedIn()) return;
         try {
           await tripApi.removePOI(tripId, poiId);
         } catch (e) {
@@ -390,6 +429,7 @@ export const useTripStore = create<TripState>()(
         }
       },
       movePOIToDay: async (tripId, poiId, targetDay) => {
+        const originalState = get().trips.find((t) => t.id === tripId);
         set((state) => ({
           trips: state.trips.map((t) => {
             if (t.id !== tripId) return t;
@@ -418,9 +458,15 @@ export const useTripStore = create<TripState>()(
             };
           }),
         }));
+        if (!isLoggedIn()) return;
         try {
           await tripApi.movePOI(tripId, poiId, targetDay);
         } catch (e) {
+          if (originalState) {
+            set((state) => ({
+              trips: state.trips.map((t) => (t.id === tripId ? originalState : t)),
+            }));
+          }
           throw e;
         }
       },
@@ -441,6 +487,7 @@ export const useTripStore = create<TripState>()(
         }),
       })),
       addDayToTrip: async (tripId) => {
+        const originalTrip = get().trips.find((t) => t.id === tripId);
         set((state) => ({
           trips: state.trips.map((t) => {
             if (t.id !== tripId) return t;
@@ -457,15 +504,21 @@ export const useTripStore = create<TripState>()(
             };
           }),
         }));
+        if (!isLoggedIn()) return;
         try {
           await tripApi.addDay(tripId);
         } catch (e) {
+          if (originalTrip) {
+            set((state) => ({
+              trips: state.trips.map((t) => (t.id === tripId ? originalTrip : t)),
+            }));
+          }
           throw e;
         }
       },
       removeDayFromTrip: async (tripId, day) => {
-        const trip = get().trips.find((t) => t.id === tripId);
-        const deletedDay = (trip?.daysList || []).find((d) => d.day === day);
+        const originalTrip = get().trips.find((t) => t.id === tripId);
+        const deletedDay = (originalTrip?.daysList || []).find((d) => d.day === day);
         set((state) => {
           const trip = state.trips.find((t) => t.id === tripId);
           if (!trip) return state;
@@ -487,6 +540,7 @@ export const useTripStore = create<TripState>()(
               : state.undoStack,
           };
         });
+        if (!isLoggedIn()) return;
         try {
           await tripApi.removeDay(tripId, day);
         } catch (e) {
