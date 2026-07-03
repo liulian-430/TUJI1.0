@@ -2,7 +2,7 @@ import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline, ZoomControl } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { MapPin, Search, Plus, Navigation, Layers, ChevronDown, Trash2, X, Maximize2, Minimize2, Edit3, PlusCircle, Minus, GripVertical, Bus, TrainFront, Car, Footprints, ArrowDown } from 'lucide-react';
+import { MapPin, Search, Plus, Navigation, Layers, ChevronDown, Trash2, X, Maximize2, Minimize2, Edit3, PlusCircle, Minus, GripVertical, Bus, TrainFront, Car, Footprints, ArrowDown, ArrowUp } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import GlassCard from '../components/ui/GlassCard';
 import EmptyState from '../components/ui/EmptyState';
@@ -629,64 +629,85 @@ export default function Map() {
           </div>
         )}
 
-        {/* 地图右上角工具按钮 */}
-        <div className="absolute top-4 right-4 z-[1000] flex flex-col gap-3">
-          <div className="glass-card flex flex-col overflow-hidden rounded-xl">
-            <button
-              onClick={() => mapRef.current?.zoomIn()}
-              className="p-3 hover:bg-white/40 transition-colors border-b border-white/20"
-              title="放大"
-            >
-              <Plus size={20} className="text-gray-700" />
-            </button>
-            <button
-              onClick={() => mapRef.current?.zoomOut()}
-              className="p-3 hover:bg-white/40 transition-colors"
-              title="缩小"
-            >
-              <Minus size={20} className="text-gray-700" />
-            </button>
-          </div>
-          <div className="relative">
-            <button
-              onClick={() => setShowLayerPanel(!showLayerPanel)}
-              className="glass-card p-3 hover:bg-white/40 transition-colors rounded-xl"
-            >
-              <Layers size={20} className="text-gray-700" />
-            </button>
-            {showLayerPanel && (
-              <div className="absolute right-full top-0 mr-2 glass-card rounded-xl p-2 min-w-[120px]">
-                <div className="flex items-center justify-between px-2 py-1 mb-1">
-                  <span className="text-xs font-medium text-gray-700">地图图层</span>
-                  <button onClick={() => setShowLayerPanel(false)} className="text-gray-400 hover:text-gray-600">
-                    <X size={14} />
-                  </button>
+        {/* 地图右侧工具按钮 - 竖向对齐 */}
+        <div className="absolute top-4 right-4 bottom-4 z-[1000] flex flex-col justify-between pointer-events-none">
+          <div className="flex flex-col gap-3 pointer-events-auto">
+            <div className="glass-card flex flex-col overflow-hidden rounded-xl">
+              <button
+                onClick={() => mapRef.current?.zoomIn()}
+                className="w-11 h-11 flex items-center justify-center hover:bg-white/40 transition-colors border-b border-white/20"
+                title="放大"
+              >
+                <Plus size={20} className="text-gray-700" />
+              </button>
+              <button
+                onClick={() => mapRef.current?.zoomOut()}
+                className="w-11 h-11 flex items-center justify-center hover:bg-white/40 transition-colors"
+                title="缩小"
+              >
+                <Minus size={20} className="text-gray-700" />
+              </button>
+            </div>
+            <div className="relative">
+              <button
+                onClick={() => setShowLayerPanel(!showLayerPanel)}
+                className="glass-card w-11 h-11 flex items-center justify-center hover:bg-white/40 transition-colors rounded-xl"
+                title="地图图层"
+              >
+                <Layers size={20} className="text-gray-700" />
+              </button>
+              {showLayerPanel && (
+                <div className="absolute right-full top-0 mr-2 glass-card rounded-xl p-2 min-w-[120px]">
+                  <div className="flex items-center justify-between px-2 py-1 mb-1">
+                    <span className="text-xs font-medium text-gray-700">地图图层</span>
+                    <button onClick={() => setShowLayerPanel(false)} className="text-gray-400 hover:text-gray-600">
+                      <X size={14} />
+                    </button>
+                  </div>
+                  {layerOptions.map((layer) => (
+                    <button
+                      key={layer.id}
+                      onClick={() => {
+                        setActiveLayer(layer.id);
+                        setShowLayerPanel(false);
+                      }}
+                      className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
+                        activeLayer === layer.id
+                          ? 'bg-primary-mid/10 text-primary-mid font-medium'
+                          : 'text-gray-600 hover:bg-white/50'
+                      }`}
+                    >
+                      {layer.name}
+                    </button>
+                  ))}
                 </div>
-                {layerOptions.map((layer) => (
-                  <button
-                    key={layer.id}
-                    onClick={() => {
-                      setActiveLayer(layer.id);
-                      setShowLayerPanel(false);
-                    }}
-                    className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
-                      activeLayer === layer.id
-                        ? 'bg-primary-mid/10 text-primary-mid font-medium'
-                        : 'text-gray-600 hover:bg-white/50'
-                    }`}
-                  >
-                    {layer.name}
-                  </button>
-                ))}
-              </div>
-            )}
+              )}
+            </div>
+            <button
+              onClick={handleResetView}
+              className="glass-card w-11 h-11 flex items-center justify-center hover:bg-white/40 transition-colors rounded-xl"
+              title="重置视野"
+            >
+              <Navigation size={20} className="text-gray-700" />
+            </button>
           </div>
+
+          {/* 右下角地图展开/收起按钮 */}
           <button
-            onClick={handleResetView}
-            className="glass-card p-3 hover:bg-white/40 transition-colors rounded-xl"
-            title="重置视野"
+            onClick={() => {
+              setIsMapExpanded(!isMapExpanded);
+              setTimeout(() => {
+                mapRef.current?.invalidateSize();
+              }, 300);
+            }}
+            className="glass-card w-11 h-11 flex items-center justify-center hover:bg-white/40 transition-colors rounded-xl pointer-events-auto"
+            title={isMapExpanded ? '收起地图' : '展开地图'}
           >
-            <Navigation size={20} className="text-gray-700" />
+            {isMapExpanded ? (
+              <ArrowUp size={20} className="text-gray-700" />
+            ) : (
+              <ArrowDown size={20} className="text-gray-700" />
+            )}
           </button>
         </div>
 
@@ -702,24 +723,6 @@ export default function Map() {
             </div>
           ))}
         </div>
-
-        {/* 右下角地图展开/收起按钮 */}
-        <button
-          onClick={() => {
-            setIsMapExpanded(!isMapExpanded);
-            setTimeout(() => {
-              mapRef.current?.invalidateSize();
-            }, 300);
-          }}
-          className="absolute bottom-3 right-3 z-[1000] glass-card p-3 hover:bg-white/40 transition-colors"
-          title={isMapExpanded ? '收起地图' : '展开地图'}
-        >
-          {isMapExpanded ? (
-            <ArrowDown size={20} className="text-gray-700" />
-          ) : (
-            <Maximize2 size={20} className="text-gray-700" />
-          )}
-        </button>
       </div>
 
       {/* Day 切换栏 */}
