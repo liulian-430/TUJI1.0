@@ -1,23 +1,17 @@
-FROM node:20-alpine AS builder
+FROM node:20-bookworm-slim
 
 WORKDIR /app
+
+ENV NODE_ENV=production
 
 COPY package*.json ./
 COPY tsconfig.json ./
 COPY src ./src
 
+RUN apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt/lists/*
 RUN npm install
-RUN npm run build
-
-FROM node:20-alpine AS production
-
-WORKDIR /app
-
-COPY package*.json ./
-RUN npm ci --only=production
-
-COPY --from=builder /app/dist ./dist
+RUN npx nest build
 
 EXPOSE 3000
 
-CMD ["npm", "run", "start:prod"]
+CMD ["node", "dist/main.js"]

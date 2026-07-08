@@ -29,7 +29,7 @@ import { AiModule } from './ai/ai.module';
         }
 
         return {
-          type: 'better-sqlite3',
+          type: 'sqlite',
           database: configService.get('DB_DATABASE') || ':memory:',
           entities: [__dirname + '/**/*.entity{.ts,.js}'],
           synchronize: true,
